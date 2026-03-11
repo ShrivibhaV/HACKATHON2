@@ -11,11 +11,11 @@ export default function OnboardingPage() {
 
   const handleComplete = (profile: StudentProfile) => {
     setProfile(profile);
-    router.push('/');
+    router.push('/learn');
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-background via-background to-purple-50 dark:to-purple-950">
+    <main className="min-h-screen">
       <PreferencePicker onComplete={handleComplete} />
     </main>
   );

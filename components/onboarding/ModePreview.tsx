@@ -63,9 +63,8 @@ export function ModePreview({ onSelect }: ModePreviewProps) {
           return (
             <Card
               key={mode}
-              className={`cursor-pointer transition-all duration-300 overflow-hidden ${
-                isHovered ? 'ring-2 ring-purple-500 shadow-lg scale-105' : 'hover:shadow-md'
-              }`}
+              className={`cursor-pointer transition-all duration-300 overflow-hidden ${isHovered ? 'ring-2 ring-purple-500 shadow-lg scale-105' : 'hover:shadow-md'
+                }`}
               onMouseEnter={() => setHoveredMode(mode)}
               onMouseLeave={() => setHoveredMode(null)}
               onClick={() => onSelect(mode)}
@@ -93,7 +92,7 @@ export function ModePreview({ onSelect }: ModePreviewProps) {
 
                 {/* Text Preview */}
                 <div className={`p-4 rounded-lg ${config.containerClass} border border-slate-200 dark:border-slate-700`}>
-                  <p className={`${config.className} ${config.textColor} text-sm`}>
+                  <div className={`${config.className} ${config.textColor} text-sm`}>
                     {mode === 'dyslexia' ? (
                       // Bionic Reading for dyslexia preview
                       <>
@@ -116,7 +115,7 @@ export function ModePreview({ onSelect }: ModePreviewProps) {
                     ) : (
                       SAMPLE_TEXT
                     )}
-                  </p>
+                  </div>
                 </div>
 
                 {/* Button */}

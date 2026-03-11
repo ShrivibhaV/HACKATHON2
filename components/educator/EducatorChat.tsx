@@ -17,9 +17,10 @@ interface Message {
 interface EducatorChatProps {
   studentProfile: StudentProfile;
   contentContext?: string;
+  injectedQuestion?: string;
 }
 
-export function EducatorChat({ studentProfile, contentContext = '' }: EducatorChatProps) {
+export function EducatorChat({ studentProfile, contentContext = '', injectedQuestion }: EducatorChatProps) {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
@@ -31,6 +32,16 @@ export function EducatorChat({ studentProfile, contentContext = '' }: EducatorCh
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const prevInjected = useRef<string | undefined>(undefined);
+
+  // Auto-inject question from parent when it changes
+  useEffect(() => {
+    if (injectedQuestion && injectedQuestion !== prevInjected.current) {
+      prevInjected.current = injectedQuestion;
+      handleSendMessage(injectedQuestion);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [injectedQuestion]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

@@ -40,11 +40,16 @@ export default function TransformPage() {
   const [result, setResult] = useState<TextTransformationResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [quizAnswers, setQuizAnswers] = useState<Record<number, number>>({});
+  const [quizSubmitted, setQuizSubmitted] = useState(false);
 
   const dominantMode = profile
     ? profile.weightedProfile.dyslexia > profile.weightedProfile.adhd
       ? 'dyslexia'
-      : 'adhd'
+      : profile.weightedProfile.adhd > profile.weightedProfile.dyslexia
+        ? 'adhd'
+        : profile.preferredMode
     : 'standard';
 
   const handleLoadSample = (key: keyof typeof SAMPLE_TEXTS) => {
@@ -72,6 +77,8 @@ export default function TransformPage() {
       }
 
       setResult(transformResult);
+      setQuizAnswers({});
+      setQuizSubmitted(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Transformation failed');
     } finally {
@@ -83,7 +90,8 @@ export default function TransformPage() {
     if (!result) return;
     try {
       await navigator.clipboard.writeText(result.transformed);
-      alert('Copied to clipboard!');
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     } catch {
       console.error('Failed to copy');
     }
@@ -240,8 +248,11 @@ export default function TransformPage() {
             {/* Actions */}
             <div className="flex gap-3 justify-center flex-wrap">
               <Button onClick={handleCopy} variant="outline">
-                <Copy className="w-4 h-4 mr-2" />
-                Copy Adapted Text
+                {copied ? (
+                  <><span className="text-green-600 mr-2">✓</span> Copied!</>
+                ) : (
+                  <><Copy className="w-4 h-4 mr-2" /> Copy Adapted Text</>
+                )}
               </Button>
               <Button onClick={handleDownload} variant="outline">
                 <Download className="w-4 h-4 mr-2" />
@@ -270,31 +281,61 @@ export default function TransformPage() {
 
             {/* Quiz */}
             {result.quiz.length > 0 && (
-              <Card className="p-6 space-y-4">
-                <h3 className="font-semibold text-lg">🎯 Quick Check</h3>
-                <p className="text-sm text-slate-600 dark:text-slate-400">
-                  Answer these questions to test your understanding
-                </p>
-                <div className="space-y-4">
-                  {result.quiz.map((q, idx) => (
-                    <div key={idx} className="p-4 border border-slate-200 dark:border-slate-700 rounded-lg">
-                      <p className="font-medium mb-3">{idx + 1}. {q.question}</p>
-                      <div className="space-y-2">
-                        {q.options.map((option, optIdx) => (
-                          <label key={optIdx} className="flex items-center gap-3 cursor-pointer">
-                            <input
-                              type="radio"
-                              name={`question-${idx}`}
-                              className="w-4 h-4"
-                            />
-                            <span className="text-sm">{option}</span>
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
+              <div className="mt-8 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-lg">🎯 Quick Check</h3>
+                  {!quizSubmitted && (
+                    <button
+                      onClick={() => setQuizSubmitted(true)}
+                      disabled={Object.keys(quizAnswers).length < result.quiz.length}
+                      className="px-4 py-2 rounded-lg text-sm font-semibold transition-all"
+                      style={Object.keys(quizAnswers).length < result.quiz.length
+                        ? { background: 'rgba(255,255,255,0.05)', color: '#555580', cursor: 'not-allowed' }
+                        : { background: 'linear-gradient(135deg, #7c5bf9, #00d4ff)', color: 'white', cursor: 'pointer' }}
+                    >
+                      ✓ Check Answers
+                    </button>
+                  )}
+                  {quizSubmitted && (
+                    <span className="text-sm font-semibold px-3 py-1 rounded-full"
+                      style={{ background: 'rgba(16,185,129,0.15)', color: '#34d399' }}>
+                      {result.quiz.filter((q, i) => quizAnswers[i] === q.correctAnswer).length}/{result.quiz.length} Correct
+                    </span>
+                  )}
                 </div>
-              </Card>
+                {result.quiz.map((q, idx) => (
+                  <div key={idx} className="p-5 rounded-xl space-y-3"
+                    style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                    <p className="font-medium text-[#f0f0ff] text-sm">{idx + 1}. {q.question}</p>
+                    <div className="space-y-2">
+                      {q.options.map((option, optIdx) => {
+                        const isSelected = quizAnswers[idx] === optIdx;
+                        const isCorrect = q.correctAnswer === optIdx;
+                        let bg = 'rgba(255,255,255,0.04)';
+                        let border = '1px solid rgba(255,255,255,0.08)';
+                        let color = '#a0a0c0';
+                        if (quizSubmitted) {
+                          if (isCorrect) { bg = 'rgba(16,185,129,0.15)'; border = '1px solid rgba(16,185,129,0.4)'; color = '#34d399'; }
+                          else if (isSelected) { bg = 'rgba(239,68,68,0.12)'; border = '1px solid rgba(239,68,68,0.3)'; color = '#f87171'; }
+                        } else if (isSelected) {
+                          bg = 'rgba(124,91,249,0.15)'; border = '1px solid rgba(124,91,249,0.4)'; color = '#a78bfa';
+                        }
+                        return (
+                          <button key={optIdx}
+                            disabled={quizSubmitted}
+                            onClick={() => !quizSubmitted && setQuizAnswers(prev => ({ ...prev, [idx]: optIdx }))}
+                            className="w-full text-left px-4 py-2.5 rounded-lg text-sm transition-all"
+                            style={{ background: bg, border, color }}>
+                            {quizSubmitted && isCorrect && '✓ '}
+                            {quizSubmitted && isSelected && !isCorrect && '✗ '}
+                            {option}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         )}

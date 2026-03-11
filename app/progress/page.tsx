@@ -1,195 +1,209 @@
 'use client';
 
-import React from 'react';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useProfile } from '@/lib/profile-context';
-import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import {
+  getProgress,
+  getWeeklyData,
+  getGrowthTimeline,
+  getModeUsagePercents,
+  formatMinutes,
+  ProgressData,
+} from '@/lib/session-tracker';
+import {
+  BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
+} from 'recharts';
 import { Flame, Trophy, BookOpen, TrendingUp } from 'lucide-react';
 
-const weeklyData = [
-  { day: 'Mon', words: 1200, minutes: 35 },
-  { day: 'Tue', words: 1800, minutes: 45 },
-  { day: 'Wed', words: 1500, minutes: 40 },
-  { day: 'Thu', words: 2100, minutes: 55 },
-  { day: 'Fri', words: 1900, minutes: 50 },
-  { day: 'Sat', words: 800, minutes: 25 },
-  { day: 'Sun', words: 1300, minutes: 35 },
-];
-
-const modeUsage = [
-  { name: 'Dyslexia', value: 45, fill: '#f97316' },
-  { name: 'ADHD', value: 35, fill: '#a855f7' },
-  { name: 'Standard', value: 20, fill: '#3b82f6' },
-];
-
-const achievements = [
-  { id: 1, name: 'First Steps', description: 'Complete first reading', icon: '🎯', unlocked: true },
-  { id: 2, name: 'Marathon', description: 'Read 5,000 words', icon: '📚', unlocked: true },
-  { id: 3, name: 'On Fire', description: '7-day streak', icon: '🔥', unlocked: false },
-  { id: 4, name: 'Voice Master', description: 'Ask 10 questions', icon: '🎤', unlocked: true },
-  { id: 5, name: 'Speedrunner', description: '30-min session', icon: '⚡', unlocked: false },
-  { id: 6, name: 'Comprehension King', description: 'Score 90% on quiz', icon: '👑', unlocked: true },
+const ACHIEVEMENTS = [
+  { id: 'first-steps',       name: 'First Steps',          description: 'Complete your first session',   icon: '🎯' },
+  { id: 'marathon',          name: 'Marathon',              description: 'Read 5,000 words',              icon: '📚' },
+  { id: 'on-fire',           name: 'On Fire',               description: 'Maintain a 7-day streak',       icon: '🔥' },
+  { id: 'voice-master',      name: 'Voice Master',          description: 'Complete 10 sessions',          icon: '🎤' },
+  { id: 'speedrunner',       name: 'Speedrunner',           description: 'Complete a 30-min session',     icon: '⚡' },
+  { id: 'comprehension-king',name: 'Comprehension King',    description: 'Score 90%+ engagement',         icon: '👑' },
 ];
 
 export default function ProgressPage() {
   const { profile } = useProfile();
+  const [data, setData] = useState<ProgressData | null>(null);
+
+  useEffect(() => {
+    setData(getProgress());
+  }, []);
 
   if (!profile) {
     return (
-      <main className="min-h-screen bg-gradient-to-br from-background via-background to-purple-50 dark:to-purple-950 flex items-center justify-center">
-        <Card className="p-8 text-center space-y-4 max-w-md">
-          <TrendingUp className="w-12 h-12 mx-auto text-purple-600" />
-          <h2 className="text-2xl font-bold">Set Up Your Profile First</h2>
-          <p className="text-slate-600 dark:text-slate-400">
-            Complete onboarding to start tracking your progress
+      <main className="min-h-screen flex items-center justify-center px-4">
+        <div className="glass-card p-10 text-center max-w-md w-full animate-scale-in">
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-5"
+            style={{ background: 'linear-gradient(135deg, #7c5bf9, #00d4ff)' }}>
+            📊
+          </div>
+          <h2 className="text-2xl font-bold text-[#f0f0ff] mb-3">Set Up Your Profile First</h2>
+          <p className="text-[#8888b0] mb-6 leading-relaxed">
+            Complete a quick onboarding to start tracking your progress.
           </p>
-          <Button
-            className="w-full bg-purple-600"
-            onClick={() => (window.location.href = '/onboarding')}
-          >
-            Start Onboarding
-          </Button>
-        </Card>
+          <Link href="/onboarding" className="glow-btn w-full justify-center">
+            Start Onboarding →
+          </Link>
+        </div>
       </main>
     );
   }
 
+  if (!data) return null;
+
+  const weeklyData = getWeeklyData();
+  const growthData = getGrowthTimeline(10);
+  const modeUsage = getModeUsagePercents(data);
+  const badgesUnlocked = new Set(data.badgesUnlocked);
+  const isNewUser = data.sessions.length === 0;
+
   return (
-    <main className="min-h-screen bg-gradient-to-br from-background via-background to-purple-50 dark:to-purple-950">
-      <div className="container mx-auto px-4 py-12">
+    <main className="min-h-screen">
+      <div className="max-w-6xl mx-auto px-4 py-12">
+
         {/* Header */}
-        <div className="text-center space-y-3 mb-12">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 bg-clip-text text-transparent">
-            Your Learning Progress
+        <div className="text-center mb-12">
+          <div className="section-pill mb-4 inline-flex">📊 Your Journey</div>
+          <h1 className="text-4xl md:text-5xl font-extrabold mb-4">
+            <span className="gradient-text">Learning Progress</span>
           </h1>
-          <p className="text-lg text-slate-600 dark:text-slate-400">
-            See how far you've come
+          <p className="text-lg text-[#8888b0]">
+            {isNewUser
+              ? 'Your progress will appear here after your first session on the Learn page.'
+              : `You've read ${data.totalWordsRead.toLocaleString()} words across ${data.sessions.length} sessions.`}
           </p>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <Card className="p-6 space-y-2">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-sm text-slate-600 dark:text-slate-400">Current Streak</p>
-                <p className="text-3xl font-bold text-orange-600">5 days</p>
-              </div>
-              <Flame className="w-8 h-8 text-orange-500" />
-            </div>
-          </Card>
-
-          <Card className="p-6 space-y-2">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-sm text-slate-600 dark:text-slate-400">Words Read</p>
-                <p className="text-3xl font-bold text-blue-600">9,600</p>
-              </div>
-              <BookOpen className="w-8 h-8 text-blue-500" />
-            </div>
-          </Card>
-
-          <Card className="p-6 space-y-2">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-sm text-slate-600 dark:text-slate-400">Study Time</p>
-                <p className="text-3xl font-bold text-purple-600">4h 25m</p>
-              </div>
-              <TrendingUp className="w-8 h-8 text-purple-500" />
-            </div>
-          </Card>
-
-          <Card className="p-6 space-y-2">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-sm text-slate-600 dark:text-slate-400">Badges</p>
-                <p className="text-3xl font-bold text-yellow-600">4/6</p>
-              </div>
-              <Trophy className="w-8 h-8 text-yellow-500" />
-            </div>
-          </Card>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-          {/* Weekly Activity */}
-          <div className="lg:col-span-2">
-            <Card className="p-6 space-y-4">
-              <h3 className="font-bold text-lg">Weekly Activity</h3>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={weeklyData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(100,116,139,0.2)" />
-                  <XAxis dataKey="day" />
-                  <YAxis />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: 'rgba(15,23,42,0.9)',
-                      border: '1px solid rgba(148,163,184,0.2)',
-                      borderRadius: '8px',
-                    }}
-                  />
-                  <Legend />
-                  <Bar dataKey="words" fill="#a855f7" name="Words Read" />
-                  <Bar dataKey="minutes" fill="#3b82f6" name="Minutes" />
-                </BarChart>
-              </ResponsiveContainer>
-            </Card>
+        {isNewUser ? (
+          /* Empty state for brand-new users */
+          <div className="glass-card p-12 text-center max-w-lg mx-auto mb-12">
+            <div className="text-6xl mb-4">🌱</div>
+            <h2 className="text-2xl font-bold text-[#f0f0ff] mb-3">Start Your First Session</h2>
+            <p className="text-[#8888b0] mb-6 leading-relaxed">
+              Head to the Learn page and start reading. Your stats, streak, and achievements will appear here automatically.
+            </p>
+            <Link href="/learn" className="glow-btn justify-center">
+              Go to Learn →
+            </Link>
           </div>
+        ) : (
+          <>
+            {/* Stats Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+              {[
+                { label: 'Current Streak', value: `${data.streakDays} day${data.streakDays !== 1 ? 's' : ''}`, icon: Flame, color: '#f59e0b' },
+                { label: 'Words Read',     value: data.totalWordsRead.toLocaleString(),                          icon: BookOpen, color: '#00d4ff' },
+                { label: 'Study Time',     value: formatMinutes(data.totalMinutes),                              icon: TrendingUp, color: '#7c5bf9' },
+                { label: 'Badges',         value: `${badgesUnlocked.size}/${ACHIEVEMENTS.length}`,              icon: Trophy, color: '#f59e0b' },
+              ].map((stat, i) => {
+                const Icon = stat.icon;
+                return (
+                  <div key={i} className="glass-card p-5 space-y-2">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="text-xs text-[#8888b0] font-semibold uppercase tracking-wider">{stat.label}</p>
+                        <p className="text-2xl font-bold text-[#f0f0ff] mt-1">{stat.value}</p>
+                      </div>
+                      <Icon className="w-6 h-6 flex-shrink-0 mt-1" style={{ color: stat.color }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
 
-          {/* Mode Usage */}
-          <Card className="p-6 space-y-4">
-            <h3 className="font-bold text-lg">Mode Usage</h3>
-            <ResponsiveContainer width="100%" height={250}>
-              <PieChart>
-                <Pie
-                  data={modeUsage}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, value }) => `${name} ${value}%`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {modeUsage.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.fill} />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+              {/* Weekly Activity */}
+              <div className="lg:col-span-2 glass-card p-6">
+                <h3 className="font-bold text-[#f0f0ff] mb-4">Weekly Activity</h3>
+                <ResponsiveContainer width="100%" height={260}>
+                  <BarChart data={weeklyData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                    <XAxis dataKey="day" tick={{ fill: '#8888b0', fontSize: 12 }} />
+                    <YAxis tick={{ fill: '#8888b0', fontSize: 12 }} />
+                    <Tooltip contentStyle={{ backgroundColor: 'rgba(10,10,30,0.95)', border: '1px solid rgba(124,91,249,0.3)', borderRadius: '8px' }} />
+                    <Legend formatter={(v) => <span style={{ color: '#8888b0', fontSize: 12 }}>{v}</span>} />
+                    <Bar dataKey="words" fill="#7c5bf9" name="Words Read" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="minutes" fill="#00d4ff" name="Minutes" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Mode Usage */}
+              <div className="glass-card p-6">
+                <h3 className="font-bold text-[#f0f0ff] mb-4">Mode Usage</h3>
+                <ResponsiveContainer width="100%" height={200}>
+                  <PieChart>
+                    <Pie data={modeUsage} cx="50%" cy="50%" outerRadius={75}
+                      label={({ name, value }) => `${name} ${value}%`} labelLine={false} dataKey="value">
+                      {modeUsage.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
+                    </Pie>
+                    <Tooltip contentStyle={{ backgroundColor: 'rgba(10,10,30,0.95)', border: '1px solid rgba(124,91,249,0.3)', borderRadius: '8px' }} />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="space-y-1 mt-2">
+                  {modeUsage.map((m, i) => (
+                    <div key={i} className="flex items-center gap-2 text-xs text-[#8888b0]">
+                      <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: m.fill }} />
+                      {m.name}
+                    </div>
                   ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </Card>
-        </div>
-
-        {/* Achievements */}
-        <Card className="p-6 space-y-6">
-          <h3 className="font-bold text-lg">Achievements</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {achievements.map((achievement) => (
-              <div
-                key={achievement.id}
-                className={`p-4 rounded-lg border-2 text-center space-y-2 ${
-                  achievement.unlocked
-                    ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800'
-                    : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 opacity-50'
-                }`}
-              >
-                <div className="text-4xl">{achievement.icon}</div>
-                <div>
-                  <p className="font-semibold text-sm">{achievement.name}</p>
-                  <p className="text-xs text-slate-600 dark:text-slate-400">
-                    {achievement.description}
-                  </p>
                 </div>
-                {achievement.unlocked && (
-                  <p className="text-xs font-semibold text-yellow-600 dark:text-yellow-400">
-                    ✓ Unlocked
-                  </p>
-                )}
               </div>
-            ))}
+            </div>
+
+            {/* Cognitive Growth Timeline */}
+            {growthData.length > 1 && (
+              <div className="glass-card p-6 mb-8">
+                <h3 className="font-bold text-[#f0f0ff] mb-1">Cognitive Growth Timeline</h3>
+                <p className="text-xs text-[#8888b0] mb-4">Your engagement score improving across sessions</p>
+                <ResponsiveContainer width="100%" height={220}>
+                  <LineChart data={growthData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                    <XAxis dataKey="session" tick={{ fill: '#8888b0', fontSize: 12 }} />
+                    <YAxis domain={[0, 100]} tick={{ fill: '#8888b0', fontSize: 12 }} />
+                    <Tooltip contentStyle={{ backgroundColor: 'rgba(10,10,30,0.95)', border: '1px solid rgba(124,91,249,0.3)', borderRadius: '8px' }} />
+                    <Line type="monotone" dataKey="engagement" stroke="#7c5bf9" strokeWidth={2.5}
+                      dot={{ fill: '#7c5bf9', r: 4 }} name="Engagement Score" activeDot={{ r: 6 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Achievements — always visible */}
+        <div className="glass-card p-6">
+          <h3 className="font-bold text-[#f0f0ff] mb-5">Achievements</h3>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {ACHIEVEMENTS.map((a) => {
+              const unlocked = badgesUnlocked.has(a.id);
+              return (
+                <div key={a.id}
+                  className="p-4 rounded-xl text-center space-y-2 transition-all duration-300"
+                  style={{
+                    background: unlocked ? 'rgba(245,158,11,0.1)' : 'rgba(255,255,255,0.03)',
+                    border: `1px solid ${unlocked ? 'rgba(245,158,11,0.4)' : 'rgba(255,255,255,0.07)'}`,
+                    opacity: unlocked ? 1 : 0.45,
+                  }}>
+                  <div className="text-4xl">{a.icon}</div>
+                  <p className="font-semibold text-sm text-[#f0f0ff]">{a.name}</p>
+                  <p className="text-xs text-[#8888b0]">{a.description}</p>
+                  {unlocked && (
+                    <span className="inline-block text-xs font-bold px-2 py-0.5 rounded-full"
+                      style={{ background: 'rgba(245,158,11,0.2)', color: '#f59e0b' }}>
+                      ✓ Unlocked
+                    </span>
+                  )}
+                </div>
+              );
+            })}
           </div>
-        </Card>
+        </div>
       </div>
     </main>
   );

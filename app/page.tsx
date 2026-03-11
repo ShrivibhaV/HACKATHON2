@@ -68,9 +68,9 @@ export default function Home() {
   ];
 
   const stats = [
-    { value: '10K+', label: 'Students Helped' },
     { value: '3', label: 'Learning Modes' },
-    { value: '98%', label: 'Satisfaction Rate' },
+    { value: '4', label: 'Rendering Engines' },
+    { value: '90s', label: 'To Profile You' },
     { value: '24/7', label: 'AI Support' },
   ];
 
