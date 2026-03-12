@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Analytics } from '@vercel/analytics/next'
 import { ProfileProvider } from '@/lib/profile-context'
 import { Navigation } from '@/components/Navigation'
+import { AgeAppropriateWrapper } from '@/components/learn/AgeAppropriateWrapper'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -29,8 +30,10 @@ export default function RootLayout({
       </head>
       <body className="antialiased" style={{ fontFamily: "'Lexend', system-ui, sans-serif" }}>
         <ProfileProvider>
-          <Navigation />
-          {children}
+          <AgeAppropriateWrapper>
+            <Navigation />
+            {children}
+          </AgeAppropriateWrapper>
         </ProfileProvider>
         <Analytics />
       </body>

@@ -1,6 +1,28 @@
 -- NeuroLearn Database Schema
 -- Tables for user profiles, learning preferences, progress tracking, and teacher access
 
+-- COMPATIBILITY LAYER FOR LOCAL PGADMIN / STANDARD POSTGRES
+-- This section ensures the script doesn't crash if Supabase's 'auth' schema is missing
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.schemata WHERE schema_name = 'auth') THEN
+        CREATE SCHEMA auth;
+    END IF;
+END $$;
+
+CREATE TABLE IF NOT EXISTS auth.users (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email TEXT UNIQUE,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE OR REPLACE FUNCTION auth.uid() 
+RETURNS UUID AS $$
+BEGIN
+    RETURN (SELECT id FROM auth.users LIMIT 1);
+END;
+$$ LANGUAGE plpgsql;
+
 -- 1. Users table (authentication + basic info)
 CREATE TABLE IF NOT EXISTS users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

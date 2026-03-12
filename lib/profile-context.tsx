@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { StudentProfile, WeightedProfile, LearningMode } from './types';
+import { supabase } from './supabase';
 
 interface ProfileContextType {
   profile: StudentProfile | null;
@@ -9,6 +10,7 @@ interface ProfileContextType {
   setProfile: (profile: StudentProfile) => void;
   updateWeighting: (weights: WeightedProfile) => void;
   getDominantMode: () => LearningMode;
+  syncToCloud: (profile: StudentProfile) => Promise<void>;
 }
 
 const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
@@ -18,21 +20,63 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Load profile from localStorage on mount
-    const stored = localStorage.getItem('neurolearn_profile');
-    if (stored) {
-      try {
-        setProfile(JSON.parse(stored));
-      } catch (error) {
-        console.error('[v0] Failed to parse stored profile:', error);
+    const loadProfile = async () => {
+      // 1. Check localStorage first (fast)
+      const stored = localStorage.getItem('neurolearn_profile');
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          setProfile(parsed);
+          
+          // 2. Try to sync from cloud if we have an ID
+          if (parsed.id) {
+            const { data, error } = await supabase
+              .from('student_profiles')
+              .select('*')
+              .eq('id', parsed.id)
+              .single();
+            
+            if (data && !error) {
+              setProfile(data);
+              localStorage.setItem('neurolearn_profile', JSON.stringify(data));
+            }
+          }
+        } catch (error) {
+          console.error('Failed to parse profile:', error);
+        }
       }
-    }
-    setLoading(false);
+      setLoading(false);
+    };
+    loadProfile();
   }, []);
+
+  const syncToCloud = async (p: StudentProfile) => {
+    try {
+      const { error } = await supabase
+        .from('student_profiles')
+        .upsert({
+          id: p.id,
+          user_id: p.userId || null, // Handle null if no auth yet
+          age_group: p.ageGroup,
+          grade_level: p.gradeLevel,
+          diagnosis_type: p.diagnosisType,
+          medication_status: p.medicationStatus,
+          comfort_level: p.comfortLevel,
+          preferred_background: p.colorPreference,
+          font_scale: p.fontScale,
+          word_spacing: p.wordSpacing,
+          updated_at: new Date().toISOString()
+        });
+      if (error) console.warn('Supabase sync warning:', error.message);
+    } catch (err) {
+      console.error('Cloud sync failed:', err);
+    }
+  };
 
   const handleSetProfile = (newProfile: StudentProfile) => {
     setProfile(newProfile);
     localStorage.setItem('neurolearn_profile', JSON.stringify(newProfile));
+    syncToCloud(newProfile);
   };
 
   const handleUpdateWeighting = (weights: WeightedProfile) => {
@@ -71,6 +115,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
         setProfile: handleSetProfile,
         updateWeighting: handleUpdateWeighting,
         getDominantMode,
+        syncToCloud,
       }}
     >
       {children}
