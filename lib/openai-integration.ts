@@ -144,11 +144,75 @@ Respond with ONLY valid JSON array, no other text.`,
 }
 
 /**
+ * Break down complex words into phonemes/syllables for sound retrieval
+ */
+export async function breakDownPhonemesWithAI(
+  words: string[]
+): Promise<Array<{ word: string; syllables: string[] }>> {
+  const messages: APIMessage[] = [
+    {
+      role: 'system',
+      content: `You are a speech therapist specializing in dyslexia. 
+      Break down complex words into clear syllables/phonemes to help with sound-part retrieval.
+      Format: JSON array of objects with "word" and "syllables" (array of strings).`,
+    },
+    {
+      role: 'user',
+      content: `Break down these words into syllables for a dyslexic student: ${words.join(', ')}
+      
+      Respond only with JSON.`,
+    },
+  ];
+
+  try {
+    const response = await callOpenAI(messages, 0.3);
+    const parsed = JSON.parse(response);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (error) {
+    console.error('[v0] Phonetic breakdown failed:', error);
+    return words.map(w => ({ word: w, syllables: [w] }));
+  }
+}
+
+/**
+ * Transform text into a narrative story (MIND Strength: Narrative)
+ */
+export async function transformToNarrative(text: string): Promise<string> {
+  const messages: APIMessage[] = [
+    {
+      role: 'system',
+      content: `You are an expert at narrative reasoning for dyslexic students. 
+      Transform dry educational facts into an engaging, character-driven story.
+      Keep the facts accurate but the tone narrative.`,
+    },
+    {
+      role: 'user',
+      content: `Transform this text into a story: ${text}`,
+    },
+  ];
+
+  return callOpenAI(messages, 0.8);
+}
+
+/**
+ * Generate a mnemonic for confusing letters (b, d, p, q)
+ */
+export async function getMnemonicForLetter(letter: string): Promise<string> {
+  const mnemonics: Record<string, string> = {
+    b: 'b is a bat then a ball',
+    d: 'd is a doorknob then a door',
+    p: 'p is a pencil then a paper',
+    q: 'q is a queen with a curly tail',
+  };
+  return mnemonics[letter.toLowerCase()] || '';
+}
+
+/**
  * Full text transformation with AI
  */
 export async function transformTextWithAI(
   text: string,
-  mode: 'dyslexia' | 'adhd' | 'simplified'
+  mode: 'dyslexia' | 'adhd' | 'simplified' | 'narrative'
 ): Promise<TextTransformationResult> {
   try {
     let transformed = text;
@@ -156,24 +220,28 @@ export async function transformTextWithAI(
     let chunks: string[] = [];
 
     if (mode === 'dyslexia') {
-      // Apply Bionic Reading for visual effect
       bionicReading = applyBionicReading(text);
       transformed = bionicReading;
     } else if (mode === 'adhd') {
-      // Chunk the text
       chunks = chunkTextForADHD(text, 150);
       transformed = chunks
         .map((chunk, idx) => `<div class="chunk chunk-${idx}">${chunk}</div>`)
         .join('');
     } else if (mode === 'simplified') {
-      // Simplify vocabulary
       transformed = await simplifyTextWithAI(text);
+    } else if (mode === 'narrative') {
+      transformed = await transformToNarrative(text);
     }
 
-    // Extract key terms and generate quiz in parallel
-    const [keyTerms, quiz] = await Promise.all([
+    // Extract complex words for phonetic breakdown
+    const complexWords = text.match(/\bit\w{7,}\b/g) || []; 
+    const filteredComplexWords = [...new Set(complexWords)].slice(0, 5);
+
+    // Parallel processing
+    const [keyTerms, quiz, phoneticBreakdown] = await Promise.all([
       extractKeyTermsWithAI(text),
       generateQuizWithAI(text, 3),
+      breakDownPhonemesWithAI(filteredComplexWords)
     ]);
 
     return {
@@ -183,6 +251,7 @@ export async function transformTextWithAI(
       chunks,
       keyTerms,
       quiz,
+      phoneticBreakdown
     };
   } catch (error) {
     console.error('[v0] Text transformation failed:', error);

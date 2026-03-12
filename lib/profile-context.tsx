@@ -49,6 +49,12 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
   const getDominantMode = (): LearningMode => {
     if (!profile) return 'standard';
     const weights = profile.weightedProfile;
+    
+    // If weights for dyslexia and adhd are both high, return mixed
+    if (weights.dyslexia > 40 && weights.adhd > 40) {
+      return 'mixed';
+    }
+
     if (weights.dyslexia > weights.adhd && weights.dyslexia > weights.standard) {
       return 'dyslexia';
     } else if (weights.adhd > weights.standard) {

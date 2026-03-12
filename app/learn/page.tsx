@@ -10,7 +10,9 @@ import { ReadingRuler } from '@/components/learn/ReadingRuler';
 import { AdaptiveContentViewer } from '@/components/learn/AdaptiveContentViewer';
 import { recordSession } from '@/lib/session-tracker';
 import { CognitiveMonitor } from '@/lib/cognitive-monitor';
-import { BookOpen, Settings, Zap, ChevronLeft, X, FileText } from 'lucide-react';
+import { transformTextWithAI } from '@/lib/openai-integration';
+import { TextTransformationResult } from '@/lib/types';
+import { BookOpen, Settings, Zap, ChevronLeft, X, FileText, Sparkles, Wand2 } from 'lucide-react';
 
 /* ─────────────────────── Topics ─────────────────────────── */
 const TOPICS = {
@@ -82,58 +84,41 @@ export default function LearnPage() {
   const [bookmarked, setBookmarked] = useState(false);
   const [showBreath, setShowBreath] = useState(false);
   const [rapidScrollToast, setRapidScrollToast] = useState(false);
+  const [isNarrative, setIsNarrative] = useState(false);
+  const [transformation, setTransformation] = useState<TextTransformationResult | null>(null);
+  const [isTransforming, setIsTransforming] = useState(false);
   const [sessionStartTime] = useState(Date.now());
   const adhdToolsRef = useRef<HTMLDivElement>(null);
   const totalSections = 3;
 
-  // COGNIX Pillar 3 — Cognitive Overload Detection
-  useEffect(() => {
-    if (!profile) return;
-    const monitor = new CognitiveMonitor({
-      idleThresholdMs: 12000,
-      onIdle: () => setShowBreath(true),
-      onRapidScroll: () => {
-        setRapidScrollToast(true);
-        setTimeout(() => setRapidScrollToast(false), 4000);
-      },
-    });
-    monitor.start();
-    return () => monitor.stop();
-  }, [profile]);
+  const dominantMode: 'dyslexia' | 'adhd' | 'standard' | 'narrative' = isNarrative 
+    ? 'narrative'
+    : profile
+      ? profile.weightedProfile.dyslexia > profile.weightedProfile.adhd
+        ? 'dyslexia'
+        : profile.weightedProfile.adhd > profile.weightedProfile.dyslexia
+          ? 'adhd'
+          : (profile.preferredMode as any)
+      : 'standard';
 
-  // Load saved notes from localStorage
+  // AI Content Transformation Effect
   useEffect(() => {
-    const saved = localStorage.getItem('neurolearn_notes') ?? '';
-    setNotes(saved);
-    const bm = localStorage.getItem(`neurolearn_bookmark_${selectedTopic}`);
-    setBookmarked(!!bm);
-  }, [selectedTopic]);
-
-  // Record session when the component unmounts (user leaves the page)
-  useEffect(() => {
-    return () => {
-      if (profile) {
-        const mins = Math.round((Date.now() - sessionStartTime) / 60000);
-        if (mins >= 1) {
-          recordSession(
-            TOPICS[selectedTopic].wordCount * currentSection,
-            mins,
-            dominantMode,
-            Math.min(100, 50 + currentSection * 15 + Math.min(mins, 20))
-          );
-        }
+    const applyTransformation = async () => {
+      setIsTransforming(true);
+      try {
+        const result = await transformTextWithAI(
+          TOPICS[selectedTopic].content, 
+          dominantMode as any
+        );
+        setTransformation(result);
+      } catch (err) {
+        console.error('Transformation failed:', err);
+      } finally {
+        setIsTransforming(false);
       }
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const dominantMode: 'dyslexia' | 'adhd' | 'standard' = profile
-    ? profile.weightedProfile.dyslexia > profile.weightedProfile.adhd
-      ? 'dyslexia'
-      : profile.weightedProfile.adhd > profile.weightedProfile.dyslexia
-        ? 'adhd'
-        : (profile.preferredMode as 'dyslexia' | 'adhd' | 'standard')
-    : 'standard';
+    applyTransformation();
+  }, [selectedTopic, dominantMode]);
 
   const modeInfo = MODE_CONFIG[dominantMode];
   const topic = TOPICS[selectedTopic];
@@ -303,21 +288,48 @@ export default function LearnPage() {
 
           {/* Main content */}
           <div className="lg:col-span-3 space-y-4 animate-fade-in-up delay-100">
-            <div className="glass-card p-8 min-h-96"
+            <div className={`glass-card p-8 min-h-96 relative overflow-hidden transition-all duration-500 ${isTransforming ? 'opacity-50 grayscale' : ''}`}
               style={dominantMode === 'dyslexia' ? { backgroundColor } : {}}>
-              <AdaptiveContentViewer
-                content={topic.content}
-                mode={dominantMode}
-                wordSpacing={wordSpacing}
-                lineHeight={lineHeight}
-                fontSize={fontSize}
-                backgroundColor={backgroundColor}
-              />
+              
+              {isTransforming && (
+                <div className="absolute inset-0 flex items-center justify-center z-10 bg-black/20 backdrop-blur-[2px]">
+                  <div className="flex flex-col items-center gap-4">
+                    <Wand2 className="w-10 h-10 text-[#7c5bf9] animate-spin" />
+                    <p className="text-[#f0f0ff] font-bold text-sm tracking-widest animate-pulse">Personalizing Content...</p>
+                  </div>
+                </div>
+              )}
+
+              {transformation ? (
+                <AdaptiveContentViewer
+                  transformation={transformation}
+                  mode={dominantMode as any}
+                  wordSpacing={wordSpacing}
+                  lineHeight={lineHeight}
+                  fontSize={fontSize}
+                  backgroundColor={backgroundColor}
+                />
+              ) : (
+                <div className="h-full flex items-center justify-center text-slate-500 italic">
+                  Preparing your lessons...
+                </div>
+              )}
             </div>
 
             {/* Dyslexia action bar */}
             {dominantMode === 'dyslexia' && (
               <div className="flex gap-3 flex-wrap">
+                <button
+                  onClick={() => setIsNarrative(!isNarrative)}
+                  className={`px-4 py-2 rounded-xl text-sm font-bold transition-all border ${
+                    isNarrative 
+                      ? 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white border-transparent shadow-lg shadow-purple-500/20'
+                      : 'bg-white/5 text-slate-400 border-white/10 hover:border-purple-500/50'
+                  }`}
+                >
+                  <Sparkles className="w-4 h-4 mr-2 inline" />
+                  {isNarrative ? 'Return to Facts' : 'Narrative Mode'}
+                </button>
                 {[
                   {
                     label: showRuler ? '✓ Reading Ruler' : '📏 Reading Ruler',

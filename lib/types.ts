@@ -1,5 +1,5 @@
 // User Profile Types
-export type LearningMode = 'standard' | 'dyslexia' | 'adhd';
+export type LearningMode = 'standard' | 'dyslexia' | 'adhd' | 'mixed';
 
 export interface WeightedProfile {
   standard: number; // 0-100
@@ -10,11 +10,18 @@ export interface WeightedProfile {
 export interface StudentProfile {
   id: string;
   userId: string;
+  ageGroup: 'junior' | 'senior';
+  gradeLevel: number;
+  diagnosisType: string[]; // ['dyslexia', 'adhd', 'none']
+  medicationStatus: boolean;
+  comfortLevel: number; // 1-10
   weightedProfile: WeightedProfile;
   preferredMode: LearningMode;
   readingSpeed: 'slow' | 'normal' | 'fast';
   focusSpan: 'short' | 'medium' | 'long';
-  colorPreference: 'light' | 'dark' | 'sepia';
+  colorPreference: 'light' | 'dark' | 'sepia' | 'warm';
+  fontScale: number;
+  wordSpacing: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -100,5 +107,10 @@ export interface TextTransformationResult {
     question: string;
     options: string[];
     correctAnswer: number;
+  }>;
+  phoneticBreakdown?: Array<{
+    word: string;
+    syllables: string[];
+    audioUrl?: string;
   }>;
 }

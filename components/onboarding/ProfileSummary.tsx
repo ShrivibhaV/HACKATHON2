@@ -11,7 +11,7 @@ interface ProfileSummaryProps {
   onFinalize: (
     readingSpeed: 'slow' | 'normal' | 'fast',
     focusSpan: 'short' | 'medium' | 'long',
-    colorPref: 'light' | 'dark' | 'sepia'
+    colorPref: 'light' | 'dark' | 'sepia' | 'warm'
   ) => void;
   onBack: () => void;
 }
@@ -21,6 +21,7 @@ export function ProfileSummary({
   onFinalize,
   onBack,
 }: ProfileSummaryProps) {
+  const [colorPref, setColorPref] = React.useState<'light' | 'dark' | 'sepia' | 'warm'>('warm');
   const data = [
     { name: 'Standard', value: weights.standard },
     { name: 'Dyslexia', value: weights.dyslexia },
@@ -28,194 +29,109 @@ export function ProfileSummary({
   ];
 
   const getDominantMode = () => {
-    if (weights.dyslexia > weights.adhd && weights.dyslexia > weights.standard) {
-      return 'Dyslexia';
-    } else if (weights.adhd > weights.standard) {
-      return 'ADHD';
-    }
+    if (weights.dyslexia > 40 && weights.adhd > 40) return 'Mixed';
+    if (weights.dyslexia > weights.adhd && weights.dyslexia > weights.standard) return 'Dyslexia';
+    else if (weights.adhd > weights.standard) return 'ADHD';
     return 'Standard';
   };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-8">
+    <div className="max-w-2xl mx-auto space-y-8 animate-in fade-in duration-1000">
       <div className="text-center space-y-2">
-        <h2 className="text-3xl font-bold">Your personalized profile</h2>
-        <p className="text-slate-600 dark:text-slate-400">
-          Your learning preferences are ready to adapt your experience
+        <h2 className="text-3xl font-bold gradient-text">Your Learning Blueprint</h2>
+        <p className="text-slate-400">
+          We've calibrated the environment to your unique profile.
         </p>
       </div>
 
-      <Card className="p-8 space-y-8">
-        {/* Profile Badge */}
+      <Card className="glass-card p-8 space-y-8 border-white/10">
         <div className="text-center space-y-3">
-          <div className="inline-block px-6 py-3 bg-gradient-to-r from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg">
-            <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-              Primary Learning Mode
-            </p>
-            <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-              {getDominantMode()} Mode
-            </p>
+          <div className="inline-block px-6 py-3 bg-white/5 border border-white/10 rounded-2xl">
+            <p className="text-xs font-medium text-slate-400 uppercase tracking-widest"> Dominant Mode </p>
+            <p className="text-2xl font-bold text-[#7c5bf9]"> {getDominantMode()} Mode </p>
           </div>
         </div>
 
-        {/* Chart */}
-        <div className="h-64 w-full">
+        <div className="h-48 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(100,116,139,0.2)" />
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: 'rgba(15,23,42,0.9)',
-                  border: '1px solid rgba(148,163,184,0.2)',
-                  borderRadius: '8px',
-                }}
-                cursor={{ fill: 'rgba(168,85,247,0.1)' }}
-              />
-              <Bar dataKey="value" fill="#a855f7" radius={[8, 8, 0, 0]} />
+              <Bar dataKey="value" fill="url(#colorGradient)" radius={[10, 10, 0, 0]} />
+              <defs>
+                <linearGradient id="colorGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#7c5bf9" stopOpacity={0.8}/>
+                  <stop offset="95%" stopColor="#00d4ff" stopOpacity={0.8}/>
+                </linearGradient>
+              </defs>
             </BarChart>
           </ResponsiveContainer>
         </div>
 
-        {/* Features Summary */}
-        <div className="space-y-4 pt-4 border-t">
-          <h3 className="font-semibold text-lg">Your experience includes:</h3>
+        <div className="space-y-4 pt-4 border-t border-white/5">
+          <h3 className="font-semibold text-lg text-[#f0f0ff]">Adaptive Features Enabled:</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {getDominantMode() === 'Dyslexia' && (
+            {(getDominantMode() === 'Dyslexia' || getDominantMode() === 'Mixed') && (
               <>
-                <div className="flex gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-                  <span className="text-xl">📖</span>
+                <div className="flex gap-3 p-4 bg-white/5 rounded-xl border border-white/5">
+                  <span className="text-2xl">🧩</span>
                   <div>
-                    <p className="font-medium text-sm">Bionic Reading</p>
-                    <p className="text-xs text-slate-600 dark:text-slate-400">
-                      Bold word starts for rhythm
-                    </p>
+                    <p className="font-bold text-sm text-[#f0f0ff]">Phonetic Breakdown</p>
+                    <p className="text-xs text-slate-400">Syllable segmenting for sound retrieval</p>
                   </div>
                 </div>
-                <div className="flex gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-                  <span className="text-xl">🎯</span>
+                <div className="flex gap-3 p-4 bg-white/5 rounded-xl border border-white/5">
+                  <span className="text-2xl">📏</span>
                   <div>
-                    <p className="font-medium text-sm">Reading Ruler</p>
-                    <p className="text-xs text-slate-600 dark:text-slate-400">
-                      Track your position
-                    </p>
-                  </div>
-                </div>
-                <div className="flex gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-                  <span className="text-xl">🎤</span>
-                  <div>
-                    <p className="font-medium text-sm">Text-to-Speech</p>
-                    <p className="text-xs text-slate-600 dark:text-slate-400">
-                      Listen while you read
-                    </p>
-                  </div>
-                </div>
-                <div className="flex gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-                  <span className="text-xl">🌡️</span>
-                  <div>
-                    <p className="font-medium text-sm">Warm Colors</p>
-                    <p className="text-xs text-slate-600 dark:text-slate-400">
-                      Easier on the eyes
-                    </p>
+                    <p className="font-bold text-sm text-[#f0f0ff]">Reading Ruler</p>
+                    <p className="text-xs text-slate-400">High-contrast tracking guide</p>
                   </div>
                 </div>
               </>
             )}
 
-            {getDominantMode() === 'ADHD' && (
+            {(getDominantMode() === 'ADHD' || getDominantMode() === 'Mixed') && (
               <>
-                <div className="flex gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-                  <span className="text-xl">⚡</span>
+                <div className="flex gap-3 p-4 bg-white/5 rounded-xl border border-white/5">
+                  <span className="text-2xl">⚡</span>
                   <div>
-                    <p className="font-medium text-sm">Micro-Chunking</p>
-                    <p className="text-xs text-slate-600 dark:text-slate-400">
-                      Bite-sized sections
-                    </p>
+                    <p className="font-bold text-sm text-[#f0f0ff]">Micro-Chunking</p>
+                    <p className="text-xs text-slate-400">Content split into digestible bits</p>
                   </div>
                 </div>
-                <div className="flex gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-                  <span className="text-xl">⏱️</span>
+                <div className="flex gap-3 p-4 bg-white/5 rounded-xl border border-white/5">
+                  <span className="text-2xl">⏱️</span>
                   <div>
-                    <p className="font-medium text-sm">Focus Timer</p>
-                    <p className="text-xs text-slate-600 dark:text-slate-400">
-                      Pomodoro & breaks
-                    </p>
-                  </div>
-                </div>
-                <div className="flex gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-                  <span className="text-xl">🎉</span>
-                  <div>
-                    <p className="font-medium text-sm">Reward System</p>
-                    <p className="text-xs text-slate-600 dark:text-slate-400">
-                      Earn streaks & badges
-                    </p>
-                  </div>
-                </div>
-                <div className="flex gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-                  <span className="text-xl">🎯</span>
-                  <div>
-                    <p className="font-medium text-sm">Focus Mode</p>
-                    <p className="text-xs text-slate-600 dark:text-slate-400">
-                      Minimal distraction view
-                    </p>
+                    <p className="font-bold text-sm text-[#f0f0ff]">Focus Pacing</p>
+                    <p className="text-xs text-slate-400">Guided reading with focus timers</p>
                   </div>
                 </div>
               </>
             )}
+          </div>
+        </div>
 
-            {getDominantMode() === 'Standard' && (
-              <>
-                <div className="flex gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-                  <span className="text-xl">📚</span>
-                  <div>
-                    <p className="font-medium text-sm">Balanced Layout</p>
-                    <p className="text-xs text-slate-600 dark:text-slate-400">
-                      Clean, focused interface
-                    </p>
-                  </div>
-                </div>
-                <div className="flex gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-                  <span className="text-xl">📊</span>
-                  <div>
-                    <p className="font-medium text-sm">Progress Tracking</p>
-                    <p className="text-xs text-slate-600 dark:text-slate-400">
-                      See your achievements
-                    </p>
-                  </div>
-                </div>
-                <div className="flex gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-                  <span className="text-xl">🤖</span>
-                  <div>
-                    <p className="font-medium text-sm">AI Educator</p>
-                    <p className="text-xs text-slate-600 dark:text-slate-400">
-                      Ask questions anytime
-                    </p>
-                  </div>
-                </div>
-                <div className="flex gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-                  <span className="text-xl">🎨</span>
-                  <div>
-                    <p className="font-medium text-sm">Customizable Theme</p>
-                    <p className="text-xs text-slate-600 dark:text-slate-400">
-                      Adjust to your preference
-                    </p>
-                  </div>
-                </div>
-              </>
-            )}
+        <div className="space-y-4 pt-4 border-t border-white/5">
+          <h3 className="font-semibold text-lg text-[#f0f0ff]">Choose Background:</h3>
+          <div className="grid grid-cols-4 gap-3">
+            {['warm', 'sepia', 'dark', 'light'].map((p) => (
+              <button
+                key={p}
+                onClick={() => setColorPref(p as any)}
+                className={`p-3 rounded-lg border text-xs capitalize transition-all ${colorPref === p ? 'border-[#7c5bf9] bg-[#7c5bf9]/20' : 'border-white/5 bg-white/5'}`}
+              >
+                {p}
+              </button>
+            ))}
           </div>
         </div>
       </Card>
 
       <div className="flex gap-4 justify-center">
-        <Button variant="outline" onClick={onBack}>
+        <Button variant="ghost" onClick={onBack} className="text-slate-400 hover:text-white">
           Back
         </Button>
         <Button
-          className="bg-gradient-to-r from-purple-600 to-blue-600 text-white"
-          size="lg"
-          onClick={() => onFinalize('normal', 'medium', 'light')}
+          className="bg-[#7c5bf9] hover:bg-[#6b4ae0] text-white px-12 py-6 rounded-xl font-bold text-lg shadow-xl shadow-purple-500/20"
+          onClick={() => onFinalize('normal', 'medium', colorPref)}
         >
           Start Learning →
         </Button>

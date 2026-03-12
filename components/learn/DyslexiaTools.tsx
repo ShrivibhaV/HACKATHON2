@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
-import { Volume2, Pause, Play } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Volume2, Pause, Sparkles, BookOpen, Layers } from 'lucide-react';
 
 interface DyslexiaToolsProps {
   text: string;
@@ -30,7 +31,19 @@ export function DyslexiaTools({
   backgroundColor,
 }: DyslexiaToolsProps) {
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [maxSpacing, setMaxSpacing] = useState(false);
   const speechRef = useRef<SpeechSynthesisUtterance | null>(null);
+
+  const toggleMaxSpacing = (checked: boolean) => {
+    setMaxSpacing(checked);
+    if (checked) {
+      onWordSpacingChange(0.35);
+      onLineHeightChange(2.5);
+    } else {
+      onWordSpacingChange(0.12);
+      onLineHeightChange(1.6);
+    }
+  };
 
   const toggleTextToSpeech = () => {
     if ('speechSynthesis' in window) {
@@ -39,10 +52,7 @@ export function DyslexiaTools({
         setIsSpeaking(false);
       } else {
         const utterance = new SpeechSynthesisUtterance(text);
-        utterance.rate = 0.9; // Slower speech
-        utterance.pitch = 1;
-        utterance.volume = 1;
-
+        utterance.rate = 0.8;
         utterance.onend = () => setIsSpeaking(false);
         speechSynthesis.speak(utterance);
         speechRef.current = utterance;
@@ -51,143 +61,77 @@ export function DyslexiaTools({
     }
   };
 
-  const backgroundOptions = [
-    { label: 'Cream', value: '#fffaf0', color: 'bg-yellow-50' },
-    { label: 'Light Yellow', value: '#fffbf0', color: 'bg-yellow-100' },
-    { label: 'Light Green', value: '#f0fdf4', color: 'bg-green-50' },
-    { label: 'Light Blue', value: '#f0f9ff', color: 'bg-blue-50' },
-  ];
-
   return (
-    <Card className="p-6 space-y-6 sticky top-4">
-      <h3 className="font-bold text-lg">Reading Tools</h3>
+    <Card className="glass-card p-6 space-y-8 sticky top-4 border-white/10 shadow-2xl">
+      <div className="flex items-center gap-2 pb-4 border-b border-white/5">
+        <Sparkles className="w-5 h-5 text-[#7c5bf9]" />
+        <h3 className="font-bold text-lg text-[#f0f0ff]">Dyslexia Lens</h3>
+      </div>
 
-      {/* Text-to-Speech */}
-      <div className="space-y-3">
-        <label className="font-semibold text-sm">Text-to-Speech</label>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/5">
+          <div className="space-y-1">
+            <p className="text-sm font-bold text-[#f0f0ff]">Max Spacing</p>
+            <p className="text-[10px] text-slate-400">Combat visual crowding</p>
+          </div>
+          <Switch 
+            checked={maxSpacing}
+            onCheckedChange={toggleMaxSpacing}
+          />
+        </div>
+
         <Button
           onClick={toggleTextToSpeech}
-          className={`w-full ${
+          className={`w-full h-12 rounded-xl font-bold transition-all ${
             isSpeaking
-              ? 'bg-red-600 hover:bg-red-700'
-              : 'bg-orange-600 hover:bg-orange-700'
-          } text-white`}
+              ? 'bg-red-500/20 text-red-500 border border-red-500/50 hover:bg-red-500/30'
+              : 'bg-[#7c5bf9] text-white hover:bg-[#6b4ae0] shadow-lg shadow-purple-500/20'
+          }`}
         >
-          {isSpeaking ? (
-            <>
-              <Pause className="w-4 h-4 mr-2" />
-              Stop Reading
-            </>
-          ) : (
-            <>
-              <Volume2 className="w-4 h-4 mr-2" />
-              Listen
-            </>
-          )}
+          {isSpeaking ? <Pause className="mr-2 h-4 w-4" /> : <Volume2 className="mr-2 h-4 w-4" />}
+          {isSpeaking ? 'Stop Reading' : 'Listen with Audio'}
         </Button>
-        <p className="text-xs text-slate-600 dark:text-slate-400">
-          Listen while you read to improve comprehension
-        </p>
       </div>
 
-      {/* Word Spacing */}
-      <div className="space-y-2">
-        <div className="flex justify-between items-center">
-          <label className="font-semibold text-sm">Word Spacing</label>
-          <span className="text-sm text-slate-600 dark:text-slate-400">
-            {wordSpacing.toFixed(2)}em
-          </span>
+      <div className="space-y-6">
+        <div className="space-y-3">
+          <div className="flex justify-between text-xs text-slate-400 font-medium">
+            <span>WORD SPACING</span>
+            <span>{wordSpacing}em</span>
+          </div>
+          <Slider value={[wordSpacing]} onValueChange={(v) => onWordSpacingChange(v[0])} min={0.05} max={0.5} step={0.01} />
         </div>
-        <Slider
-          value={[wordSpacing]}
-          onValueChange={(val) => onWordSpacingChange(val[0])}
-          min={0.05}
-          max={0.4}
-          step={0.02}
-          className="w-full"
-        />
-        <p className="text-xs text-slate-600 dark:text-slate-400">
-          Wider spacing makes reading easier
-        </p>
-      </div>
 
-      {/* Line Height */}
-      <div className="space-y-2">
-        <div className="flex justify-between items-center">
-          <label className="font-semibold text-sm">Line Height</label>
-          <span className="text-sm text-slate-600 dark:text-slate-400">
-            {lineHeight.toFixed(1)}
-          </span>
+        <div className="space-y-3">
+          <div className="flex justify-between text-xs text-slate-400 font-medium">
+            <span>LINE HEIGHT</span>
+            <span>{lineHeight}</span>
+          </div>
+          <Slider value={[lineHeight]} onValueChange={(v) => onLineHeightChange(v[0])} min={1.2} max={3.0} step={0.1} />
         </div>
-        <Slider
-          value={[lineHeight]}
-          onValueChange={(val) => onLineHeightChange(val[0])}
-          min={1.2}
-          max={2.2}
-          step={0.1}
-          className="w-full"
-        />
-        <p className="text-xs text-slate-600 dark:text-slate-400">
-          Extra line height improves readability
-        </p>
       </div>
 
-      {/* Font Size */}
-      <div className="space-y-2">
-        <div className="flex justify-between items-center">
-          <label className="font-semibold text-sm">Font Size</label>
-          <span className="text-sm text-slate-600 dark:text-slate-400">
-            {fontSize}px
-          </span>
-        </div>
-        <Slider
-          value={[fontSize]}
-          onValueChange={(val) => onFontSizeChange(val[0])}
-          min={12}
-          max={24}
-          step={1}
-          className="w-full"
-        />
-      </div>
-
-      {/* Background Color */}
-      <div className="space-y-3">
-        <label className="font-semibold text-sm">Background Color</label>
-        <div className="grid grid-cols-2 gap-2">
-          {backgroundOptions.map((option) => (
-            <Button
-              key={option.value}
-              variant={backgroundColor === option.value ? 'default' : 'outline'}
-              className={`${
-                backgroundColor === option.value ? 'ring-2 ring-orange-500' : ''
-              } ${option.color}`}
-              onClick={() => onBackgroundChange(option.value)}
+      <div className="space-y-4 pt-4 border-t border-white/5">
+        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Mnemonic Anchors</p>
+        <div className="grid grid-cols-4 gap-2">
+          {['b', 'd', 'p', 'q'].map((l) => (
+            <button
+              key={l}
+              className="h-10 rounded-lg bg-white/5 border border-white/5 text-[#7c5bf9] font-bold hover:bg-white/10 transition-colors"
+              title={`Show mnemonic for ${l}`}
             >
-              <span
-                className="w-4 h-4 rounded mr-2 border border-slate-400"
-                style={{ backgroundColor: option.value }}
-              />
-              {option.label}
-            </Button>
+              {l}
+            </button>
           ))}
         </div>
       </div>
 
-      {/* Quick Preset */}
-      <div className="space-y-3">
-        <label className="font-semibold text-sm">Quick Presets</label>
-        <Button
-          variant="outline"
-          className="w-full text-sm"
-          onClick={() => {
-            onWordSpacingChange(0.18);
-            onLineHeightChange(2.0);
-            onFontSizeChange(16);
-            onBackgroundChange('#fffaf0');
-          }}
-        >
-          Recommended Settings
-        </Button>
+      <div className="p-4 bg-[#7c5bf9]/10 rounded-xl border border-[#7c5bf9]/20 space-y-2">
+        <div className="flex items-center gap-2">
+          <Layers className="w-4 h-4 text-[#7c5bf9]" />
+          <p className="text-xs font-bold text-[#f0f0ff]">Phonetic Status</p>
+        </div>
+        <p className="text-[10px] text-slate-400">Syllable breakdown is active for complex words. Click any word to hear sounds.</p>
       </div>
     </Card>
   );

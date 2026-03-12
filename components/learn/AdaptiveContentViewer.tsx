@@ -1,11 +1,13 @@
 'use client';
 
-import React from 'react';
-import { LearningMode } from '@/lib/types';
+import React, { useState } from 'react';
+import { LearningMode, TextTransformationResult } from '@/lib/types';
 import DOMPurify from 'dompurify';
+import { SoundBallSimulator } from '../learning/SoundBallSimulator';
+import { Card } from '@/components/ui/card';
 
 interface AdaptiveContentViewerProps {
-  content: string;
+  transformation: TextTransformationResult;
   mode: LearningMode;
   wordSpacing?: number;
   lineHeight?: number;
@@ -15,7 +17,7 @@ interface AdaptiveContentViewerProps {
 }
 
 export function AdaptiveContentViewer({
-  content,
+  transformation,
   mode,
   wordSpacing = 0.1,
   lineHeight = 1.6,
@@ -23,6 +25,8 @@ export function AdaptiveContentViewer({
   backgroundColor = '#ffffff',
   dyslexiaFontEnabled = false,
 }: AdaptiveContentViewerProps) {
+  const [selectedComplexWord, setSelectedComplexWord] = React.useState<{ word: string, syllables: string[] } | null>(null);
+
   const getModeStyles = () => {
     switch (mode) {
       case 'dyslexia':
@@ -33,46 +37,68 @@ export function AdaptiveContentViewer({
           fontFamily: dyslexiaFontEnabled
             ? '"OpenDyslexic", "Courier New", monospace'
             : 'inherit',
-          fontWeight: '500',
-          letterSpacing: '0.02em',
           backgroundColor: backgroundColor,
-          color: '#1f2937',
+          color: '#f0f0ff',
           padding: '2rem',
-          borderRadius: '0.5rem',
+          borderRadius: '1rem',
+          border: '1px solid rgba(255,255,255,0.05)',
         };
       case 'adhd':
         return {
-          fontSize: `${Math.max(fontSize - 2, 14)}px`,
-          lineHeight: 1.7,
-          wordSpacing: '0.1em',
-          fontWeight: '600',
-          color: '#6b21a8',
-          backgroundColor: '#faf5ff',
+          fontSize: `${Math.max(fontSize, 16)}px`,
+          lineHeight: 1.8,
+          wordSpacing: '0.05em',
+          backgroundColor: '#0f172a',
+          color: '#f0f0ff',
           padding: '2rem',
-          borderRadius: '0.5rem',
+          borderRadius: '1rem',
         };
       default:
         return {
           fontSize: `${fontSize}px`,
           lineHeight: lineHeight,
           wordSpacing: `${wordSpacing}em`,
-          color: '#1f2937',
-          backgroundColor: '#ffffff',
+          color: '#f0f0ff',
+          backgroundColor: '#0f172a',
           padding: '2rem',
-          borderRadius: '0.5rem',
+          borderRadius: '1rem',
         };
     }
   };
 
   const styles = getModeStyles();
 
+  // Helper to handle word clicks for phonetic breakdown
+  const handleTextClick = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.tagName === 'B' || target.classList.contains('complex-word')) {
+      const wordText = target.innerText.replace(/[.,!?]/g, '');
+      const breakdown = transformation.phoneticBreakdown?.find(pb => pb.word.toLowerCase() === wordText.toLowerCase());
+      if (breakdown) {
+        setSelectedComplexWord({ word: breakdown.word, syllables: breakdown.syllables });
+      }
+    }
+  };
+
   return (
-    <div
-      className="prose dark:prose-invert max-w-none"
-      style={styles as React.CSSProperties}
-      dangerouslySetInnerHTML={{
-        __html: DOMPurify.sanitize(content),
-      }}
-    />
+    <div className="space-y-8">
+      {selectedComplexWord && (
+        <div className="animate-in slide-in-from-top duration-500">
+          <SoundBallSimulator 
+            word={selectedComplexWord.word} 
+            syllables={selectedComplexWord.syllables} 
+          />
+        </div>
+      )}
+
+      <div
+        className="prose dark:prose-invert max-w-none glass-card cursor-text"
+        style={styles as React.CSSProperties}
+        onClick={handleTextClick}
+        dangerouslySetInnerHTML={{
+          __html: DOMPurify.sanitize(transformation.transformed),
+        }}
+      />
+    </div>
   );
 }

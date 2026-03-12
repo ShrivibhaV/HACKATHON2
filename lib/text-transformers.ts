@@ -23,16 +23,19 @@ export function applyBionicReading(text: string): string {
 
 /**
  * Break text into syllable-based chunks for readability
+ * Uses a simpler regex-based approach for local fallback
  */
 export function applySyllableBreaks(text: string): string {
-  // This is a simplified version - a real implementation would use a syllable dictionary
-  const patterns = [
-    // Common syllable patterns
-    /([bcdfghjklmnprstvwxyz])\1/g, // Double consonants
-    /([aeiou])([bcdfghjklmnprstvwxyz])\b/g, // Consonant at end of word
-  ];
-
-  return text; // Placeholder - full syllable breaking would require library
+  // Pattern: splits between vowels if followed by two consonants, or after a vowel-consonant-vowel
+  return text
+    .split(/\b/)
+    .map(word => {
+      if (word.length < 4) return word;
+      return word
+        .replace(/([aeiouy]{1,2})([bcdfghjklmnpqrstvwxz]{2,})([aeiouy]{1,2})/gi, '$1-$2$3')
+        .replace(/([aeiouy]{1,2})([bcdfghjklmnpqrstvwxz])([aeiouy]{1,2})/gi, '$1-$2$3');
+    })
+    .join('');
 }
 
 /**
