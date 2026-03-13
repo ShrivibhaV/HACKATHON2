@@ -95,11 +95,12 @@ export function chunkByAge(text: string, ageGroup: AgeGroup): string[] {
   return chunks.filter(Boolean);
 }
 
-// ─── General Transitions (Should not be search links) ────────
-const GENERAL_TRANSITIONS = new Set([
-  'subsequently', 'approximately', 'facilitate', 'utilize', 'comprise', 
-  'consequently', 'furthermore', 'nevertheless', 'accordingly', 'moreover',
-  'similarly', 'conversely', 'hence', 'thus', 'therefore'
+// ─── Technical Terms (Only these will be search links) ───────
+const TECHNICAL_TERMS = new Set([
+  'photosynthesis', 'chloroplast', 'chlorophyll', 'mitochondria', 'enzyme', 
+  'organism', 'cellular', 'evaporation', 'precipitation', 'neuron', 
+  'electrochemical', 'anthropogenic', 'concentration', 'adenosine triphosphate', 
+  'nicotinamide adenine dinucleotide phosphate', 'atp', 'nadph'
 ]);
 
 export function simplifyVocabulary(
@@ -125,19 +126,28 @@ export function simplifyVocabulary(
     
     // Process text nodes only to avoid replacing inside already created spans
     resultHtml = processTextNodes(resultHtml, (plain) => {
-      if (regex.test(plain)) {
+      // Use a new regex instance inside the callback to avoid state issues
+      const localRegex = new RegExp(`\\b${original.replace(/[-()]/g, '\\$&')}\\b`, 'gi');
+      
+      if (localRegex.test(plain)) {
         replacements.push({ original, replacement });
         
-        // Only wrap in a search link if it's NOT a general transition
-        if (GENERAL_TRANSITIONS.has(original.toLowerCase())) {
+        // Reset regex for the replace call
+        localRegex.lastIndex = 0;
+        
+        // Only wrap in a search link if it's a technical term OR in the global science terms
+        const isTechnical = TECHNICAL_TERMS.has(original.toLowerCase()) || 
+                           SCIENCE_TERMS.has(original.toLowerCase());
+
+        if (!isTechnical) {
           return plain.replace(
-            regex,
-            `<span class="simplified-word" title="Original: ${original}">${replacement}</span>`
+            localRegex,
+            `<span class="simplified-word-plain" title="Original: ${original}">${replacement}</span>`
           );
         }
 
         return plain.replace(
-          regex,
+          localRegex,
           `<a href="https://www.google.com/search?q=${encodeURIComponent(replacement)}" target="_blank" rel="noopener noreferrer" class="simplified-word-link"><span class="simplified-word" title="Original: ${original}">${replacement}</span></a>`
         );
       }
@@ -290,13 +300,14 @@ export function transformTextForLearner(
 
   } else if (mode === 'adhd') {
     // ADHD students need minimized, point-wise content
-    const { simplified: simplifiedAdhd } = simplifyVocabulary(processedText, ageGroup);
-    const highlighted = highlightKeywords(simplifiedAdhd);
+    // Step 1: Generate short notes from ORIGINAL text
+    const bulletNotes = generateShortNotes(processedText, ageGroup);
     
-    // Transform into Bullet Points / Short Notes
-    adapted = generateShortNotes(highlighted, ageGroup);
+    // Step 2: Apply vocabulary simplification and highlights to the generated HTML
+    const { simplified: simplifiedAdhd } = simplifyVocabulary(bulletNotes, ageGroup);
+    adapted = highlightKeywords(simplifiedAdhd);
     
-    // Chunks still exist but are now the bullet points
+    // Chunks still exist but are now the bullet points for internal tracking
     chunks = splitSentences(processedText).slice(0, 5); 
 
   } else if (mode === 'simplified' || mode === 'standard') {

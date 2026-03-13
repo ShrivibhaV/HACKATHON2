@@ -593,19 +593,20 @@ html {
 
 /* Keyword highlighting */
 mark.keyword {
-  background: rgba(124, 91, 249, 0.18);
-  color: #c7b8ff; /* Slightly darker than e0d0ff for better definition in dark mode */
+  background: rgba(0, 212, 255, 0.15); /* Bright Cyan background */
+  color: #00e5ff; /* Vibrant Cyan text for dark mode */
   border-radius: 4px;
   padding: 0 4px;
-  border-bottom: 2px solid rgba(124, 91, 249, 0.6);
+  border-bottom: 2px solid rgba(0, 212, 255, 0.6);
   font-weight: 600;
   cursor: help;
   transition: all 0.2s ease;
 }
 
 mark.keyword:hover {
-  background: rgba(124, 91, 249, 0.3);
+  background: rgba(0, 212, 255, 0.3);
   color: #ffffff;
+  box-shadow: 0 0 12px rgba(0, 212, 255, 0.2);
 }
 
 .keyword-link, .simplified-word-link {
@@ -623,19 +624,36 @@ mark.keyword:hover {
 
 /* Simplified word tooltip */
 span.simplified-word {
-  color: #9f7aea; /* Solid purple for visibility */
-  font-weight: 500;
+  color: #a78bfa; /* Bright violet for visibility in dark mode */
+  font-weight: 600;
   font-style: italic;
   cursor: help;
-  border-bottom: 1px dashed rgba(124, 91, 249, 0.6);
+  border-bottom: 1px dashed rgba(124, 91, 249, 0.7);
   position: relative;
+}
+
+/* ADHD specific highlight adjustments */
+.adhd-mode mark.keyword {
+  background: rgba(124, 91, 249, 0.2);
+  color: #d1c4ff;
+  border-bottom-color: #7c5bf9;
 }
 
 .dyslexia-mode span.simplified-word {
   color: #5b21b6 !important; /* Deeper purple for light background */
   border-bottom-color: #7c3aed !important;
 }
-span.simplified-word:hover::after {
+
+/* Plain simplified word (no visual styling) */
+span.simplified-word-plain {
+  color: inherit !important;
+  border: none !important;
+  background: none !important;
+  text-decoration: none !important;
+  cursor: help;
+}
+
+span.simplified-word:hover::after, span.simplified-word-plain:hover::after {
   content: attr(title);
   position: absolute;
   bottom: 100%;
