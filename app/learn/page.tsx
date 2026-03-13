@@ -30,6 +30,8 @@ export default function LearnPage() {
   const [distractionFree, setDistractionFree] = useState(false);
   const [activeChunk, setActiveChunk] = useState(0);
   const [nudgeReset, setNudgeReset] = useState(0);
+  const [simplifyOverride, setSimplifyOverride] = useState(false);
+  const [showBreakBanner, setShowBreakBanner] = useState(false);
   const tts = useTTS();
 
   const ageGroup: AgeGroup = profile?.ageGroup ?? 'teen';
@@ -42,10 +44,10 @@ export default function LearnPage() {
 
   const modeInfo = MODE_CONFIG[dominantMode] ?? MODE_CONFIG.standard;
 
-  // Pre-transform lesson content
+  // Pre-transform lesson content — uses child-level simplification if Simplify was clicked
   const transformation = React.useMemo(
-    () => transformTextForLearner(LESSON.rawText, dominantMode, ageGroup),
-    [dominantMode, ageGroup]
+    () => transformTextForLearner(LESSON.rawText, simplifyOverride ? 'simplified' : dominantMode, simplifyOverride ? 'child' : ageGroup),
+    [dominantMode, ageGroup, simplifyOverride]
   );
 
   const handleChunkChange = useCallback((idx: number) => {
@@ -55,7 +57,20 @@ export default function LearnPage() {
   }, [tts]);
 
   const handleSimplify = useCallback(() => {
-    // FocusNudge "Simplify" — transform at one level lower
+    // FocusNudge "Simplify" — switch to simpler vocabulary and larger chunks
+    setSimplifyOverride(true);
+    setNudgeReset((n) => n + 1);
+  }, []);
+
+  const handleBreak = useCallback(() => {
+    // FocusNudge "Break" — show a banner and let the timer restart
+    setShowBreakBanner(true);
+    setTimeout(() => setShowBreakBanner(false), 10000); // hide after 10s
+    setNudgeReset((n) => n + 1);
+  }, []);
+
+  const handleReady = useCallback(() => {
+    // FocusNudge "Ready!" — dismiss, do nothing else
     setNudgeReset((n) => n + 1);
   }, []);
 
@@ -83,13 +98,51 @@ export default function LearnPage() {
       {/* ── Module B: ADHD Focus Ruler ── */}
       <ADHDFocusRuler enabled={focusRulerOn} />
 
-      {/* ── Module C: Focus Nudge (45 seconds) ── */}
+      {/* ── Module C: Focus Nudge (every 30 minutes, periodic) ── */}
       <FocusNudge
-        timeoutMinutes={0.75}
+        intervalMinutes={30}
+        periodic={true}
         resetTrigger={nudgeReset}
         onSimplify={handleSimplify}
-        onDismiss={() => setNudgeReset((n) => n + 1)}
+        onBreak={handleBreak}
+        onReady={handleReady}
       />
+
+      {/* Break banner */}
+      {showBreakBanner && (
+        <div
+          className="fixed top-20 left-1/2 -translate-x-1/2 z-50 animate-fade-in-up px-6 py-4 rounded-2xl text-center"
+          style={{
+            background: 'linear-gradient(135deg, rgba(124,91,249,0.25), rgba(0,212,255,0.15))',
+            border: '1px solid rgba(124,91,249,0.4)',
+            backdropFilter: 'blur(16px)',
+            boxShadow: '0 10px 40px rgba(124,91,249,0.3)',
+          }}
+        >
+          <p className="text-2xl mb-1">☕</p>
+          <p className="font-bold text-[#f0f0ff]">Enjoy your break!</p>
+          <p className="text-xs text-[#8888b0] mt-1">Come back when you're ready. We'll be here. 🧠</p>
+        </div>
+      )}
+
+      {/* Simplify mode banner */}
+      {simplifyOverride && (
+        <div
+          className="fixed top-20 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-4 py-2.5 rounded-full"
+          style={{
+            background: 'linear-gradient(135deg, #7c5bf9, #00d4ff)',
+            boxShadow: '0 6px 20px rgba(124,91,249,0.4)',
+          }}
+        >
+          <span className="text-white text-sm font-semibold">✨ Simplified Mode is ON</span>
+          <button
+            onClick={() => setSimplifyOverride(false)}
+            className="text-white/70 hover:text-white text-xs underline"
+          >
+            Reset
+          </button>
+        </div>
+      )}
 
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Breadcrumb */}

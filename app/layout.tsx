@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   title: 'NeuroLearn – Adaptive Learning for Every Mind',
   description: 'AI-powered adaptive learning for dyslexia, ADHD, and neurodivergent students. Personalised, gamified, and beautiful.',
   icons: {
-    icon: '/icon.svg',
+    icon: '/puzzle-icon.png',
   },
 }
 
@@ -24,7 +24,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
-          href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap"
           rel="stylesheet"
         />
       </head>

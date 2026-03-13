@@ -11,6 +11,7 @@ interface ProfileContextType {
   updateWeighting: (weights: WeightedProfile) => void;
   getDominantMode: () => LearningMode;
   syncToCloud: (profile: StudentProfile) => Promise<void>;
+  logout: () => void;
 }
 
 const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
@@ -117,6 +118,15 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
         updateWeighting: handleUpdateWeighting,
         getDominantMode,
         syncToCloud,
+        logout: () => {
+          localStorage.removeItem('neurolearn_profile');
+          localStorage.removeItem('neurolearn_progress');
+          setProfile(null);
+          if (isSupabaseConfigured) {
+            supabase.auth.signOut();
+          }
+          window.location.href = '/';
+        },
       }}
     >
       {children}

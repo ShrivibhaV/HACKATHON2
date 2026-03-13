@@ -3,17 +3,22 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 
 interface FocusNudgeProps {
-  /** Minutes of inactivity before nudge appears */
-  timeoutMinutes?: number;
-  /** Called when user clicks "Simplify this" */
+  /** Minutes between each nudge appearance (default: 30) */
+  intervalMinutes?: number;
+  /**
+   * If true, user activity (click/scroll/keydown) does NOT reset the timer.
+   * The nudge will appear every `intervalMinutes` regardless of interaction.
+   */
+  periodic?: boolean;
+  /** Called when user clicks "✨ Simplify" */
   onSimplify?: () => void;
-  /** Called when user clicks "I'm Ready" or "Start Break" */
-  onDismiss?: () => void;
-  /** Reset the timer (call this when user advances to next chunk) */
+  /** Called when user clicks "⏱ Break" */
+  onBreak?: () => void;
+  /** Called when user clicks "🙋 Ready!" or the × close button */
+  onReady?: () => void;
+  /** Provide a number that changes to externally reset the interval (e.g. on chunk advance) */
   resetTrigger?: number;
 }
-
-type NudgeState = 'idle' | 'visible' | 'dismissed';
 
 const BREAK_ACTIVITIES = [
   { emoji: '🙆', text: 'Stand up and stretch your arms wide!' },
@@ -25,43 +30,64 @@ const BREAK_ACTIVITIES = [
 ];
 
 export function FocusNudge({
-  timeoutMinutes = 3,
+  intervalMinutes = 30,
+  periodic = true,
   onSimplify,
-  onDismiss,
+  onBreak,
+  onReady,
   resetTrigger,
 }: FocusNudgeProps) {
-  const [nudgeState, setNudgeState] = useState<NudgeState>('idle');
-  const [breakActivity] = useState(
+  const [visible, setVisible] = useState(false);
+  const [activity] = useState(
     () => BREAK_ACTIVITIES[Math.floor(Math.random() * BREAK_ACTIVITIES.length)]
   );
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // track when this component last showed (for the localStorage persistence)
+  const STORAGE_KEY = 'neurolearn_nudge_last_shown';
 
-  const startTimer = useCallback(() => {
+  const scheduleNext = useCallback(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(
-      () => setNudgeState('visible'),
-      timeoutMinutes * 60 * 1000
-    );
-  }, [timeoutMinutes]);
 
-  // Start timer on mount
+    // Check if 30 minutes have passed since last shown (persists across refreshes)
+    const lastShown = localStorage.getItem(STORAGE_KEY);
+    const now = Date.now();
+    const intervalMs = intervalMinutes * 60 * 1000;
+
+    let delay = intervalMs;
+    if (lastShown) {
+      const elapsed = now - parseInt(lastShown, 10);
+      delay = Math.max(0, intervalMs - elapsed);
+    }
+
+    timerRef.current = setTimeout(() => {
+      setVisible(true);
+      localStorage.setItem(STORAGE_KEY, String(Date.now()));
+      // Schedule the next one after the nudge is shown
+      timerRef.current = setTimeout(() => {
+        scheduleNext();
+      }, intervalMs);
+    }, delay);
+  }, [intervalMinutes]);
+
+  // Start on mount
   useEffect(() => {
-    startTimer();
+    scheduleNext();
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
-  }, [startTimer]);
+  }, [scheduleNext]);
 
-  // Reset timer when user advances (resetTrigger changes)
+  // Allow external reset (e.g. chunk change)
   useEffect(() => {
     if (resetTrigger !== undefined) {
-      setNudgeState('idle');
-      startTimer();
+      setVisible(false);
+      scheduleNext();
     }
-  }, [resetTrigger, startTimer]);
+  }, [resetTrigger, scheduleNext]);
 
-  // Also reset on any user interaction (click/keypress on the page)
+  // Reset on user activity ONLY in non-periodic mode
   useEffect(() => {
+    if (periodic) return; // skip if periodic mode is on
     const handleActivity = () => {
-      if (nudgeState === 'idle') startTimer();
+      if (!visible) scheduleNext();
     };
     window.addEventListener('click', handleActivity, { passive: true });
     window.addEventListener('keydown', handleActivity, { passive: true });
@@ -71,41 +97,45 @@ export function FocusNudge({
       window.removeEventListener('keydown', handleActivity);
       window.removeEventListener('scroll', handleActivity);
     };
-  }, [nudgeState, startTimer]);
+  }, [periodic, visible, scheduleNext]);
 
   const handleSimplify = () => {
-    setNudgeState('dismissed');
-    startTimer();
+    setVisible(false);
     onSimplify?.();
   };
 
-  const handleDismiss = () => {
-    setNudgeState('dismissed');
-    startTimer();
-    onDismiss?.();
+  const handleBreak = () => {
+    setVisible(false);
+    onBreak?.();
   };
 
-  if (nudgeState !== 'visible') return null;
+  const handleReady = () => {
+    setVisible(false);
+    onReady?.();
+  };
+
+  if (!visible) return null;
 
   return (
     <>
-      {/* Semi-transparent backdrop (very subtle — not full block) */}
+      {/* Subtle backdrop */}
       <div
         className="fixed inset-0 z-40 pointer-events-none"
-        style={{ background: 'rgba(8,8,26,0.4)', backdropFilter: 'blur(2px)' }}
+        style={{ background: 'rgba(8,8,26,0.55)', backdropFilter: 'blur(3px)' }}
       />
 
       {/* Nudge bubble */}
       <div
         className="fixed bottom-6 right-6 z-50 max-w-sm w-full animate-fade-in-up"
         role="dialog"
+        aria-modal="true"
         aria-label="Focus nudge"
       >
         <div
           className="glass-card p-5 space-y-4"
           style={{
-            border: '1px solid rgba(124,91,249,0.4)',
-            boxShadow: '0 20px 60px rgba(124,91,249,0.25), 0 0 0 1px rgba(124,91,249,0.15)',
+            border: '1px solid rgba(124,91,249,0.45)',
+            boxShadow: '0 20px 60px rgba(124,91,249,0.3), 0 0 0 1px rgba(124,91,249,0.15)',
           }}
         >
           {/* Header */}
@@ -123,43 +153,54 @@ export function FocusNudge({
               </div>
             </div>
             <button
-              onClick={handleDismiss}
-              className="text-[#555580] hover:text-[#f0f0ff] transition-colors text-lg leading-none"
-              aria-label="Close nudge"
+              onClick={handleReady}
+              className="text-[#555580] hover:text-[#f0f0ff] transition-colors text-lg leading-none mt-0.5"
+              aria-label="Close"
             >
               ×
             </button>
           </div>
 
-          {/* Break activity suggestion */}
+          {/* Break activity */}
           <div
             className="p-3 rounded-xl flex items-center gap-3"
-            style={{ background: 'rgba(124,91,249,0.1)', border: '1px solid rgba(124,91,249,0.15)' }}
+            style={{ background: 'rgba(124,91,249,0.1)', border: '1px solid rgba(124,91,249,0.18)' }}
           >
-            <span className="text-2xl">{breakActivity.emoji}</span>
-            <p className="text-xs text-[#a0a0c0] leading-relaxed">{breakActivity.text}</p>
+            <span className="text-2xl">{activity.emoji}</span>
+            <p className="text-xs text-[#a0a0c0] leading-relaxed">{activity.text}</p>
           </div>
 
-          {/* Actions */}
+          {/* Action buttons */}
           <div className="grid grid-cols-3 gap-2">
+            {/* Simplify — blue gradient */}
             <button
               onClick={handleSimplify}
-              className="py-2 px-2 rounded-lg text-xs font-semibold transition-all hover:opacity-90 text-center"
+              className="py-2.5 px-2 rounded-lg text-xs font-semibold transition-all hover:opacity-90 text-center"
               style={{ background: 'linear-gradient(135deg, #7c5bf9, #00d4ff)', color: 'white' }}
             >
               ✨ Simplify
             </button>
+            {/* Break — amber/orange */}
             <button
-              onClick={handleDismiss}
-              className="py-2 px-2 rounded-lg text-xs font-semibold transition-all text-center"
-              style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)', color: '#f59e0b' }}
+              onClick={handleBreak}
+              className="py-2.5 px-2 rounded-lg text-xs font-semibold transition-all text-center"
+              style={{
+                background: 'linear-gradient(135deg, rgba(180,100,0,0.6), rgba(245,120,11,0.5))',
+                border: '1px solid rgba(245,158,11,0.4)',
+                color: '#fcd34d',
+              }}
             >
               ⏱ Break
             </button>
+            {/* Ready — green */}
             <button
-              onClick={handleDismiss}
-              className="py-2 px-2 rounded-lg text-xs font-semibold transition-all text-center"
-              style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.25)', color: '#34d399' }}
+              onClick={handleReady}
+              className="py-2.5 px-2 rounded-lg text-xs font-semibold transition-all text-center"
+              style={{
+                background: 'linear-gradient(135deg, rgba(5,100,60,0.6), rgba(16,185,129,0.4))',
+                border: '1px solid rgba(16,185,129,0.35)',
+                color: '#34d399',
+              }}
             >
               🙋 Ready!
             </button>
