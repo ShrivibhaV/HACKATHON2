@@ -1,166 +1,73 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useProfile } from '@/lib/profile-context';
-import { DyslexiaTools } from '@/components/learn/DyslexiaTools';
-import { ADHDTools } from '@/components/learn/ADHDTools';
-import { ReadingRuler } from '@/components/learn/ReadingRuler';
-import { AdaptiveContentViewer } from '@/components/learn/AdaptiveContentViewer';
-import { recordSession } from '@/lib/session-tracker';
-import { CognitiveMonitor } from '@/lib/cognitive-monitor';
-import { transformTextWithAI } from '@/lib/openai-integration';
-import { TextTransformationResult } from '@/lib/types';
-import { BookOpen, Settings, Zap, ChevronLeft, X, FileText, Sparkles, Wand2 } from 'lucide-react';
+import { transformTextForLearner } from '@/lib/text-transformers';
+import { ADHDFocusRuler, ADHDChunkFocus } from '@/components/learn/ADHDFocusRuler';
+import { FocusNudge } from '@/components/learn/FocusNudge';
+import { useTTS, TTSWordHighlight } from '@/hooks/useTTS';
+import { getAgeConfig, AgeGroup } from '@/lib/age-config';
+import { LearningMode } from '@/lib/types';
+import { ChevronLeft, BookOpen, Volume2, Zap, Settings, Play, Pause, Square } from 'lucide-react';
 
-/* ─────────────────────── Topics ─────────────────────────── */
-const TOPICS = {
-  photosynthesis: {
-    label: '🌿 Photosynthesis',
-    title: 'Photosynthesis: How Plants Make Food',
-    wordCount: 98,
-    content: `<p><b>Photo</b>synthesis is the process by which plants convert light energy into chemical energy stored in glucose. This process occurs primarily in the leaves of plants, specifically in structures called <b>chloro</b>plasts that contain the green pigment <b>chloro</b>phyll.</p>
-  
-  <p>During the light-dependent reactions, chlorophyll absorbs photons from sunlight and transfers their energy to electrons. These high-energy electrons are used to generate adenosine triphosphate (ATP) and nicotinamide adenine dinucleotide phosphate (NADPH), which are energy carriers.</p>
-  
-  <p>Subsequently, during the light-independent reactions, also known as the Calvin cycle, these energy carriers are utilized to convert carbon dioxide into glucose through a series of enzymatic reactions.</p>
-  
-  <p>This process is essential for life on Earth because it converts light energy into chemical energy that plants use for growth, and it also produces the oxygen that most organisms need to breathe.</p>`,
-  },
-  waterCycle: {
-    label: '💧 Water Cycle',
-    title: 'The Water Cycle: Earth\'s Natural Recycler',
-    wordCount: 112,
-    content: `<p>The <b>hydro</b>logical cycle, commonly called the water cycle, describes the continuous movement of water between the Earth's surface and the atmosphere. Water undergoes phase transitions through <b>evapo</b>ration, where solar radiation causes water from oceans, lakes, and soil to transform into water vapor.</p>
-
-  <p>This water vapor rises through the atmosphere, and as it encounters cooler air at higher altitudes, condensation occurs, forming water droplets that constitute clouds. <b>Precipi</b>tation subsequently returns this water to Earth's surface as rain, snow, or hail.</p>
-  
-  <p>The water that falls on land may infiltrate the soil and replenish groundwater aquifers, percolate into underground reservoirs, or run off into rivers and streams that ultimately return to the ocean, completing the cycle.</p>`,
-  },
-  humanBrain: {
-    label: '🧠 Human Brain',
-    title: 'The Human Brain: A Neuroscience Overview',
-    wordCount: 105,
-    content: `<p>The human brain is a complex organ comprising approximately 86 billion <b>neu</b>rons interconnected through trillions of synaptic connections. These neurons communicate through electrochemical processes, transmitting signals across synaptic gaps via <b>neuro</b>transmitters.</p>
-
-  <p>The brain's structure can be divided into several primary regions: the <b>cerebrum</b>, which orchestrates higher cognitive functions such as reasoning and language; the <b>cerebellum</b>, which coordinates motor control and balance; and the brainstem, which regulates vital functions including breathing and heart rate.</p>
-  
-  <p>The cerebral cortex, the brain's outermost layer, exhibits functional specialization across distinct regions, each responsible for particular sensory, motor, or cognitive processes — making it the seat of human consciousness.</p>`,
-  },
-  climateChange: {
-    label: '🌍 Climate Change',
-    title: 'Climate Change: Causes and Consequences',
-    wordCount: 108,
-    content: `<p><b>Climate</b> change, characterized by long-term alterations in global temperature and precipitation patterns, is primarily attributed to anthropogenic emissions of <b>greenhouse</b> gases. The greenhouse effect occurs when atmospheric gases such as carbon dioxide, methane, and nitrous oxide absorb thermal radiation.</p>
-
-  <p>Industrialization has substantially increased atmospheric CO₂ concentrations from approximately 280 parts per million in pre-industrial times to over 420 ppm today. This elevated concentration enhances the greenhouse effect, resulting in global mean surface temperature increases.</p>
-  
-  <p>The consequences of climate change encompass rising sea levels, intensification of extreme weather phenomena, ecosystem disruption, and agricultural implications that threaten global food security — making it the defining challenge of our era.</p>`,
-  },
+const LESSON = {
+  title: 'Photosynthesis: How Plants Make Food',
+  rawText: `Photosynthesis is the process by which plants convert light energy into chemical energy stored in glucose. This process occurs primarily in the leaves of plants, specifically in structures called chloroplasts that contain the green pigment chlorophyll. During the light-dependent reactions, chlorophyll absorbs photons from sunlight and transfers their energy to electrons. These high-energy electrons are used to generate adenosine triphosphate (ATP) and nicotinamide adenine dinucleotide phosphate (NADPH), which are energy carriers. Subsequently, during the light-independent reactions, also known as the Calvin cycle, these energy carriers are utilized to convert carbon dioxide into glucose through a series of enzymatic reactions. This process is essential for life on Earth because it converts light energy into chemical energy that plants use for growth, and it also produces the oxygen that most organisms need to breathe.`,
 };
 
-type TopicKey = keyof typeof TOPICS;
-
-const MODE_CONFIG: Record<string, { label: string; emoji: string; color: string; gradient: string }> = {
-  dyslexia: { label: 'Dyslexia Mode', emoji: '📖', color: '#f59e0b', gradient: 'linear-gradient(135deg, #f59e0b, #e040fb)' },
-  adhd:     { label: 'ADHD Mode',     emoji: '⚡', color: '#7c5bf9', gradient: 'linear-gradient(135deg, #7c5bf9, #e040fb)' },
-  standard: { label: 'Standard Mode', emoji: '🧠', color: '#00d4ff', gradient: 'linear-gradient(135deg, #00d4ff, #7c5bf9)' },
+const MODE_CONFIG = {
+  dyslexia: { label: 'Dyslexia Mode',  emoji: '📖', gradient: 'linear-gradient(135deg, #f59e0b, #e040fb)', color: '#f59e0b' },
+  adhd:     { label: 'ADHD Mode',      emoji: '⚡', gradient: 'linear-gradient(135deg, #7c5bf9, #e040fb)', color: '#7c5bf9' },
+  standard: { label: 'Standard Mode',  emoji: '🧠', gradient: 'linear-gradient(135deg, #00d4ff, #7c5bf9)', color: '#00d4ff' },
+  mixed:    { label: 'Mixed Mode',     emoji: '🌀', gradient: 'linear-gradient(135deg, #e040fb, #00d4ff)', color: '#e040fb' },
 };
 
 export default function LearnPage() {
   const { profile } = useProfile();
-  const router = useRouter();
-  const [showTools, setShowTools] = useState(true);
-  const [showRuler, setShowRuler] = useState(false);
-  const [wordSpacing, setWordSpacing] = useState(0.18);
-  const [lineHeight, setLineHeight] = useState(2.0);
-  const [fontSize, setFontSize] = useState(16);
-  const [backgroundColor, setBackgroundColor] = useState('#fffaf0');
-  const [selectedTopic, setSelectedTopic] = useState<TopicKey>('photosynthesis');
-  const [currentSection, setCurrentSection] = useState(1);
-  const [showNotes, setShowNotes] = useState(false);
-  const [notes, setNotes] = useState('');
-  const [bookmarked, setBookmarked] = useState(false);
-  const [showBreath, setShowBreath] = useState(false);
-  const [rapidScrollToast, setRapidScrollToast] = useState(false);
-  const [isNarrative, setIsNarrative] = useState(false);
-  const [transformation, setTransformation] = useState<TextTransformationResult | null>(null);
-  const [isTransforming, setIsTransforming] = useState(false);
-  const [sessionStartTime] = useState(Date.now());
-  const adhdToolsRef = useRef<HTMLDivElement>(null);
-  const totalSections = 3;
+  const [showSidebar, setShowSidebar] = useState(true);
+  const [focusRulerOn, setFocusRulerOn] = useState(false);
+  const [distractionFree, setDistractionFree] = useState(false);
+  const [activeChunk, setActiveChunk] = useState(0);
+  const [nudgeReset, setNudgeReset] = useState(0);
+  const tts = useTTS();
 
-  const dominantMode: 'dyslexia' | 'adhd' | 'standard' | 'narrative' = isNarrative 
-    ? 'narrative'
-    : profile
-      ? profile.weightedProfile.dyslexia > profile.weightedProfile.adhd
-        ? 'dyslexia'
-        : profile.weightedProfile.adhd > profile.weightedProfile.dyslexia
-          ? 'adhd'
-          : (profile.preferredMode as any)
-      : 'standard';
+  const ageGroup: AgeGroup = profile?.ageGroup ?? 'teen';
+  const cfg = getAgeConfig(ageGroup);
+  const dominantMode: LearningMode =
+    !profile ? 'standard'
+    : profile.weightedProfile.dyslexia > profile.weightedProfile.adhd ? 'dyslexia'
+    : profile.weightedProfile.adhd > 30 ? 'adhd'
+    : 'standard';
 
-  // AI Content Transformation Effect
-  useEffect(() => {
-    const applyTransformation = async () => {
-      setIsTransforming(true);
-      try {
-        const result = await transformTextWithAI(
-          TOPICS[selectedTopic].content, 
-          dominantMode as any
-        );
-        setTransformation(result);
-      } catch (err) {
-        console.error('Transformation failed:', err);
-      } finally {
-        setIsTransforming(false);
-      }
-    };
-    applyTransformation();
-  }, [selectedTopic, dominantMode]);
+  const modeInfo = MODE_CONFIG[dominantMode] ?? MODE_CONFIG.standard;
 
-  const modeInfo = MODE_CONFIG[dominantMode];
-  const topic = TOPICS[selectedTopic];
+  // Pre-transform lesson content
+  const transformation = React.useMemo(
+    () => transformTextForLearner(LESSON.rawText, dominantMode, ageGroup),
+    [dominantMode, ageGroup]
+  );
 
-  // Text-to-speech
-  const handleListen = useCallback(() => {
-    if ('speechSynthesis' in window) {
-      if (speechSynthesis.speaking) { speechSynthesis.cancel(); return; }
-      const plain = topic.content.replace(/<[^>]+>/g, ' ');
-      const utt = new SpeechSynthesisUtterance(plain);
-      utt.rate = 0.9;
-      speechSynthesis.speak(utt);
-    }
-  }, [topic]);
+  const handleChunkChange = useCallback((idx: number) => {
+    setActiveChunk(idx);
+    setNudgeReset((n) => n + 1);
+    tts.stop();
+  }, [tts]);
 
-  const handleBookmark = () => {
-    const key = `neurolearn_bookmark_${selectedTopic}`;
-    if (bookmarked) {
-      localStorage.removeItem(key);
-      setBookmarked(false);
-    } else {
-      localStorage.setItem(key, '1');
-      setBookmarked(true);
-    }
-  };
-
-  const saveNotes = (v: string) => {
-    setNotes(v);
-    localStorage.setItem('neurolearn_notes', v);
-  };
+  const handleSimplify = useCallback(() => {
+    // FocusNudge "Simplify" — transform at one level lower
+    setNudgeReset((n) => n + 1);
+  }, []);
 
   if (!profile) {
     return (
       <main className="min-h-screen flex items-center justify-center px-4">
         <div className="glass-card p-10 text-center max-w-md w-full animate-scale-in">
           <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-5"
-            style={{ background: 'linear-gradient(135deg, #7c5bf9, #00d4ff)' }}>
-            📚
-          </div>
+            style={{ background: 'linear-gradient(135deg, #7c5bf9, #00d4ff)' }}>📚</div>
           <h2 className="text-2xl font-bold text-[#f0f0ff] mb-3">Set Up Your Profile First</h2>
           <p className="text-[#8888b0] mb-6 leading-relaxed">
-            Complete a quick onboarding to get your personalised learning experience.
+            Complete a quick onboarding so we can adapt this lesson to YOUR brain.
           </p>
           <Link href="/onboarding" className="glow-btn w-full justify-center">
             Start Onboarding →
@@ -171,302 +78,228 @@ export default function LearnPage() {
   }
 
   return (
-    <main className="min-h-screen">
-      <ReadingRuler visible={showRuler && dominantMode === 'dyslexia'} />
+    <main className={`min-h-screen transition-all duration-200 ${distractionFree ? 'adhd-focus-mode' : ''}`}>
 
-      {/* Breathing modal */}
-      {showBreath && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center"
-          style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)' }}>
-          <div className="glass-card p-10 text-center max-w-sm w-full relative">
-            <button onClick={() => setShowBreath(false)}
-              className="absolute top-4 right-4 text-[#8888b0] hover:text-white">
-              <X className="w-5 h-5" />
-            </button>
-            <div className="text-6xl mb-4 animate-float">🌬️</div>
-            <h3 className="text-xl font-bold text-[#f0f0ff] mb-2">Take a Breath</h3>
-            <p className="text-[#8888b0] mb-6">Breathe in for 4 seconds, hold for 4, out for 4.</p>
-            <div className="w-20 h-20 rounded-full mx-auto animate-pulse-glow"
-              style={{ background: 'linear-gradient(135deg, #7c5bf9, #00d4ff)' }} />
-            <p className="text-sm text-[#8888b0] mt-4">Click anywhere to close when ready.</p>
-          </div>
-        </div>
-      )}
+      {/* ── Module B: ADHD Focus Ruler ── */}
+      <ADHDFocusRuler enabled={focusRulerOn} />
 
-      {/* Rapid scroll toast — COGNIX Pillar 3 */}
-      {rapidScrollToast && (
-        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-5 py-3 rounded-xl shadow-2xl"
-          style={{ background: 'rgba(124,91,249,0.95)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.15)' }}>
-          <span className="text-lg">⚡</span>
-          <p className="text-white text-sm font-medium">Going fast? Try <strong>Listen Aloud</strong> mode instead</p>
-          <button onClick={() => { setRapidScrollToast(false); handleListen(); }}
-            className="ml-2 text-xs px-2 py-1 rounded-md text-white/80 hover:text-white hover:bg-white/10 transition-colors">
-            Listen →
-          </button>
-        </div>
-      )}
-
-      {/* Notes panel */}
-      {showNotes && (
-        <div className="fixed right-0 top-16 bottom-0 w-80 z-40 flex flex-col"
-          style={{ background: 'rgba(10,10,30,0.97)', borderLeft: '1px solid rgba(124,91,249,0.25)' }}>
-          <div className="flex items-center justify-between px-4 py-3 border-b"
-            style={{ borderColor: 'rgba(255,255,255,0.07)' }}>
-            <h3 className="font-bold text-[#f0f0ff] flex items-center gap-2">
-              <FileText className="w-4 h-4 text-[#7c5bf9]" /> My Notes
-            </h3>
-            <button onClick={() => setShowNotes(false)} className="text-[#8888b0] hover:text-white">
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-          <textarea
-            className="flex-1 p-4 bg-transparent text-[#c0c0e0] resize-none text-sm leading-relaxed outline-none"
-            placeholder="Jot down your thoughts, key points, questions..."
-            value={notes}
-            onChange={(e) => saveNotes(e.target.value)}
-          />
-          <div className="px-4 py-2 text-xs text-[#555580]">Auto-saved to your browser</div>
-        </div>
-      )}
+      {/* ── Module C: Focus Nudge (45 seconds) ── */}
+      <FocusNudge
+        timeoutMinutes={0.75}
+        resetTrigger={nudgeReset}
+        onSimplify={handleSimplify}
+        onDismiss={() => setNudgeReset((n) => n + 1)}
+      />
 
       <div className="max-w-7xl mx-auto px-4 py-8">
-
         {/* Breadcrumb */}
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-8">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-2">
             <Link href="/" className="text-[#8888b0] hover:text-[#a78bfa] flex items-center gap-1 text-sm transition-colors">
               <ChevronLeft className="w-4 h-4" /> Home
             </Link>
             <span className="text-[#555580]">/</span>
             <span className="text-sm text-[#f0f0ff] font-medium">Learn</span>
           </div>
-          <button onClick={() => setShowTools(!showTools)}
-            className="md:hidden flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm text-[#8888b0] hover:text-white transition-colors"
+          <button onClick={() => setShowSidebar(!showSidebar)}
+            className="md:hidden flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-[#8888b0] transition-all"
             style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-            <Settings className="w-4 h-4" />
-            {showTools ? 'Hide Tools' : 'Show Tools'}
+            <Settings className="w-3.5 h-3.5" /> Tools
           </button>
         </div>
 
-        {/* Topic selector */}
-        <div className="glass-card p-4 mb-5 flex gap-2 flex-wrap">
-          <span className="text-xs font-bold text-[#8888b0] uppercase tracking-wider self-center mr-2">Topic:</span>
-          {(Object.entries(TOPICS) as [TopicKey, typeof TOPICS[TopicKey]][]).map(([key, t]) => (
-            <button key={key} onClick={() => { setSelectedTopic(key); setCurrentSection(1); }}
-              className="px-4 py-1.5 rounded-lg text-sm font-medium transition-all duration-200"
-              style={selectedTopic === key
-                ? { background: modeInfo.gradient, color: 'white' }
-                : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#8888b0' }}>
-              {t.label}
-            </button>
-          ))}
-        </div>
-
         {/* Lesson header */}
-        <div className="glass-card p-6 mb-6 animate-fade-in-up">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="glass-card p-5 mb-5 animate-fade-in-up">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl flex-shrink-0"
+              <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
                 style={{ background: modeInfo.gradient }}>
                 {modeInfo.emoji}
               </div>
               <div>
-                <h1 className="text-xl md:text-2xl font-bold text-[#f0f0ff]">{topic.title}</h1>
-                <div className="flex items-center gap-2 mt-1">
+                <h1 className="text-lg md:text-xl font-bold text-[#f0f0ff]">{LESSON.title}</h1>
+                <div className="flex items-center gap-2 mt-1 flex-wrap">
                   <span className="mode-chip text-white text-xs" style={{ background: modeInfo.gradient }}>
                     {modeInfo.emoji} {modeInfo.label}
                   </span>
-                  <span className="text-xs text-[#8888b0]">~{Math.ceil(topic.wordCount / 200)} min read · 🌿 Science · Beginner</span>
+                  <span className="reading-time-badge">⏱ {transformation.readingTimeMinutes} min</span>
+                  <span className="text-xs text-[#8888b0]">{cfg.emoji} {cfg.label}</span>
                 </div>
               </div>
             </div>
-            <BookOpen className="w-5 h-5 text-[#8888b0]" />
+
+            {/* TTS Controls */}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {!tts.isPlaying ? (
+                <button onClick={() => tts.play(transformation.transformed)}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all hover:opacity-90"
+                  style={{ background: 'linear-gradient(135deg, #7c5bf9, #00d4ff)', color: 'white' }}>
+                  <Play className="w-3 h-3" /> Listen
+                </button>
+              ) : (
+                <>
+                  <button onClick={tts.pause}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold"
+                    style={{ background: 'rgba(124,91,249,0.12)', color: '#a78bfa', border: '1px solid rgba(124,91,249,0.25)' }}>
+                    <Pause className="w-3 h-3" /> Pause
+                  </button>
+                  <button onClick={tts.stop}
+                    className="p-2 rounded-lg text-xs"
+                    style={{ background: 'rgba(239,68,68,0.1)', color: '#f87171', border: '1px solid rgba(239,68,68,0.2)' }}>
+                    <Square className="w-3 h-3" />
+                  </button>
+                </>
+              )}
+              <Volume2 className="w-4 h-4 text-[#555580]" />
+            </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-5">
+          {/* ── Main content ── */}
+          <div className="lg:col-span-3 animate-fade-in-up delay-100">
 
-          {/* Main content */}
-          <div className="lg:col-span-3 space-y-4 animate-fade-in-up delay-100">
-            <div className={`glass-card p-8 min-h-96 relative overflow-hidden transition-all duration-500 ${isTransforming ? 'opacity-50 grayscale' : ''}`}
-              style={dominantMode === 'dyslexia' ? { backgroundColor } : {}}>
-              
-              {isTransforming && (
-                <div className="absolute inset-0 flex items-center justify-center z-10 bg-black/20 backdrop-blur-[2px]">
-                  <div className="flex flex-col items-center gap-4">
-                    <Wand2 className="w-10 h-10 text-[#7c5bf9] animate-spin" />
-                    <p className="text-[#f0f0ff] font-bold text-sm tracking-widest animate-pulse">Personalizing Content...</p>
+            {/* ADHD Mode — chunk-focused navigation */}
+            {dominantMode === 'adhd' ? (
+              <div className="glass-card p-6">
+                <div className="flex items-center gap-2 mb-5">
+                  <span className="font-bold text-[#f0f0ff]">⚡ Focus Mode</span>
+                  <span className="text-xs text-[#8888b0]">— one chunk at a time, others dimmed</span>
+                  <button
+                    onClick={() => setFocusRulerOn(!focusRulerOn)}
+                    className="ml-auto px-3 py-1 rounded-lg text-xs font-semibold transition-all"
+                    style={focusRulerOn
+                      ? { background: 'linear-gradient(135deg, #7c5bf9, #00d4ff)', color: 'white' }
+                      : { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#8888b0' }
+                    }
+                  >
+                    {focusRulerOn ? '✓ Ruler ON' : '📏 Focus Ruler'}
+                  </button>
+                  <button
+                    onClick={() => setDistractionFree(!distractionFree)}
+                    className="px-3 py-1 rounded-lg text-xs font-semibold transition-all"
+                    style={distractionFree
+                      ? { background: 'linear-gradient(135deg, #e040fb, #7c5bf9)', color: 'white' }
+                      : { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#8888b0' }
+                    }
+                  >
+                    {distractionFree ? '✓ Focus' : '🔕 Distraction-Free'}
+                  </button>
+                </div>
+                <ADHDChunkFocus
+                  chunks={transformation.chunks}
+                  onChunkChange={handleChunkChange}
+                  ageConfig={cfg}
+                />
+              </div>
+            ) : (
+              /* Dyslexia / Standard — full text with TTS word highlight */
+              <div
+                className={`glass-card p-8 content-area min-h-80 ${dominantMode === 'dyslexia' ? 'dyslexia-mode' : ''}`}
+                style={dominantMode === 'dyslexia' ? {
+                  fontFamily: 'OpenDyslexic, Lexend, sans-serif',
+                  letterSpacing: '0.06em',
+                  wordSpacing: '0.2em',
+                  lineHeight: 2.1,
+                  backgroundColor: '#fffbf0',
+                  color: '#2d2d2d',
+                } : {
+                  lineHeight: cfg.lineHeight,
+                  fontSize: cfg.fontSize,
+                  color: '#c0c0e0',
+                }}
+              >
+                {tts.isPlaying || tts.activeWordIndex >= 0 ? (
+                  <p style={{ lineHeight: 'inherit', fontSize: 'inherit' }}>
+                    <TTSWordHighlight
+                      text={LESSON.rawText}
+                      activeWordIndex={tts.activeWordIndex}
+                    />
+                  </p>
+                ) : (
+                  <div dangerouslySetInnerHTML={{ __html: transformation.transformed }} />
+                )}
+              </div>
+            )}
+
+            {/* Quick action bar */}
+            <div className="flex gap-2 mt-3 flex-wrap">
+              {dominantMode === 'dyslexia' && (
+                <>
+                  <button onClick={() => setFocusRulerOn(!focusRulerOn)}
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+                    style={focusRulerOn
+                      ? { background: 'linear-gradient(135deg, #f59e0b, #e040fb)', color: 'white' }
+                      : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#8888b0' }
+                    }
+                  >
+                    📏 {focusRulerOn ? 'Ruler ON' : 'Reading Ruler'}
+                  </button>
+                </>
+              )}
+              <Link href="/transform" className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+                style={{ background: 'rgba(124,91,249,0.1)', border: '1px solid rgba(124,91,249,0.2)', color: '#a78bfa' }}>
+                ✨ Transform Your Own Text →
+              </Link>
+            </div>
+          </div>
+
+          {/* ── Sidebar ── */}
+          {showSidebar && (
+            <div className="lg:col-span-1 space-y-4 animate-fade-in-up delay-200">
+
+              {/* Key terms */}
+              {transformation.keyTerms.length > 0 && (
+                <div className="glass-card p-4 space-y-3 sticky top-20">
+                  <h3 className="font-bold text-sm text-[#f0f0ff] flex items-center gap-2">
+                    <BookOpen className="w-4 h-4 text-[#a78bfa]" /> Key Terms
+                  </h3>
+                  <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                    {transformation.keyTerms.map((term, i) => (
+                      <div key={i} className="p-3 rounded-lg"
+                        style={{ background: 'rgba(124,91,249,0.07)', border: '1px solid rgba(124,91,249,0.12)' }}>
+                        <p className="text-xs font-bold text-[#a78bfa] mb-1">{term.term}</p>
+                        <p className="text-xs text-[#8888b0] leading-relaxed">{term.explanation}</p>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
 
-              {transformation ? (
-                <AdaptiveContentViewer
-                  transformation={transformation}
-                  mode={dominantMode as any}
-                  wordSpacing={wordSpacing}
-                  lineHeight={lineHeight}
-                  fontSize={fontSize}
-                  backgroundColor={backgroundColor}
-                />
-              ) : (
-                <div className="h-full flex items-center justify-center text-slate-500 italic">
-                  Preparing your lessons...
-                </div>
-              )}
-            </div>
-
-            {/* Dyslexia action bar */}
-            {dominantMode === 'dyslexia' && (
-              <div className="flex gap-3 flex-wrap">
-                <button
-                  onClick={() => setIsNarrative(!isNarrative)}
-                  className={`px-4 py-2 rounded-xl text-sm font-bold transition-all border ${
-                    isNarrative 
-                      ? 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white border-transparent shadow-lg shadow-purple-500/20'
-                      : 'bg-white/5 text-slate-400 border-white/10 hover:border-purple-500/50'
-                  }`}
-                >
-                  <Sparkles className="w-4 h-4 mr-2 inline" />
-                  {isNarrative ? 'Return to Facts' : 'Narrative Mode'}
-                </button>
-                {[
-                  {
-                    label: showRuler ? '✓ Reading Ruler' : '📏 Reading Ruler',
-                    active: showRuler,
-                    onClick: () => setShowRuler(!showRuler),
-                  },
-                  {
-                    label: bookmarked ? '✓ Bookmarked' : '📑 Bookmark',
-                    active: bookmarked,
-                    onClick: handleBookmark,
-                  },
-                  {
-                    label: '📝 Take Notes',
-                    active: showNotes,
-                    onClick: () => setShowNotes(!showNotes),
-                  },
-                  {
-                    label: '🎤 Listen Aloud',
-                    active: false,
-                    onClick: handleListen,
-                  },
-                ].map((btn, i) => (
-                  <button key={i} onClick={btn.onClick}
-                    className="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200"
-                    style={btn.active
-                      ? { background: 'linear-gradient(135deg, #f59e0b, #e040fb)', color: 'white' }
-                      : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#a0a0c0' }}>
-                    {btn.label}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* ADHD action bar */}
-            {dominantMode === 'adhd' && (
-              <div className="flex gap-3 flex-wrap">
-                {[
-                  {
-                    label: '⏱️ Focus Timer',
-                    onClick: () => {
-                      adhdToolsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                      // Small pulse-highlight effect
-                      adhdToolsRef.current?.animate(
-                        [{ boxShadow: '0 0 0 0 rgba(124,91,249,0.6)' }, { boxShadow: '0 0 0 12px rgba(124,91,249,0)' }],
-                        { duration: 800, iterations: 2 }
-                      );
-                    },
-                  },
-                  {
-                    label: '📝 Take Notes',
-                    onClick: () => setShowNotes(!showNotes),
-                  },
-                  {
-                    label: `🎯 Section ${currentSection < totalSections ? currentSection + 1 : 1}`,
-                    onClick: () => setCurrentSection((p) => (p < totalSections ? p + 1 : 1)),
-                  },
-                  {
-                    label: '🌬️ Breathe',
-                    onClick: () => setShowBreath(true),
-                  },
-                ].map((btn, i) => (
-                  <button key={i} onClick={btn.onClick}
-                    className="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200"
-                    style={{ background: 'rgba(124,91,249,0.1)', border: '1px solid rgba(124,91,249,0.2)', color: '#a78bfa' }}>
-                    {btn.label}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* Standard action bar */}
-            {dominantMode === 'standard' && (
-              <div className="flex gap-3 flex-wrap">
-                {[
-                  { label: '📝 Take Notes', onClick: () => setShowNotes(!showNotes) },
-                  { label: '🎤 Listen Aloud', onClick: handleListen },
-                  { label: '📈 View Progress', onClick: () => router.push('/progress') },
-                  { label: '❓ Ask AI Educator', onClick: () => router.push('/educator'), highlight: true },
-                ].map((btn, i) => (
-                  <button key={i} onClick={btn.onClick}
-                    className="px-4 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-90"
-                    style={(btn as any).highlight
-                      ? { background: 'linear-gradient(135deg, #7c5bf9, #00d4ff)', color: 'white' }
-                      : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#a0a0c0' }}>
-                    {btn.label}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Sidebar tools */}
-          {showTools && (
-            <div className="lg:col-span-1 space-y-4 animate-fade-in-up delay-200">
-              {dominantMode === 'dyslexia' && (
-                <DyslexiaTools
-                  text={topic.content.replace(/<[^>]+>/g, ' ')}
-                  wordSpacing={wordSpacing}
-                  lineHeight={lineHeight}
-                  fontSize={fontSize}
-                  backgroundColor={backgroundColor}
-                  onWordSpacingChange={setWordSpacing}
-                  onLineHeightChange={setLineHeight}
-                  onFontSizeChange={setFontSize}
-                  onBackgroundChange={setBackgroundColor}
-                />
-              )}
-
+              {/* ADHD sidebar extras */}
               {dominantMode === 'adhd' && (
-                <div ref={adhdToolsRef}>
-                  <ADHDTools
-                    totalSections={totalSections}
-                    currentSection={currentSection}
-                    onBreakComplete={() => setShowBreath(true)}
-                  />
+                <div className="glass-card p-4 space-y-4">
+                  <h3 className="font-bold text-sm text-[#f0f0ff] flex items-center gap-2">
+                    <Zap className="w-4 h-4 text-[#7c5bf9]" /> Focus Boost
+                  </h3>
+                  <div>
+                    <p className="text-xs text-[#8888b0] mb-1">🔥 TODAY'S STREAK</p>
+                    <p className="text-2xl font-extrabold" style={{ color: '#f59e0b' }}>5 days</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-[#8888b0] mb-2">LESSON PROGRESS</p>
+                    <div className="h-2 rounded-full" style={{ background: 'rgba(255,255,255,0.08)' }}>
+                      <div className="h-full rounded-full transition-all duration-700"
+                        style={{ width: `${Math.round(((activeChunk + 1) / Math.max(transformation.chunks.length, 1)) * 100)}%`,
+                                 background: 'linear-gradient(90deg, #7c5bf9, #00d4ff)' }} />
+                    </div>
+                    <p className="text-xs text-[#8888b0] mt-1">
+                      Chunk {activeChunk + 1} of {transformation.chunks.length}
+                    </p>
+                  </div>
                 </div>
               )}
 
-              {dominantMode === 'standard' && (
-                <div className="glass-card p-5 space-y-3 sticky top-20">
-                  <h3 className="font-bold text-[#f0f0ff]">Learning Tools</h3>
-                  {[
-                    { label: '📝 Take Notes', onClick: () => setShowNotes(!showNotes), highlight: false },
-                    { label: '🎤 Listen Aloud', onClick: handleListen, highlight: false },
-                    { label: '📈 View Progress', onClick: () => router.push('/progress'), highlight: false },
-                    { label: '❓ Ask AI Educator', onClick: () => router.push('/educator'), highlight: true },
-                  ].map((btn, i) => (
-                    <button key={i} onClick={btn.onClick}
-                      className="w-full py-2.5 px-4 rounded-xl text-sm font-medium transition-all hover:opacity-90 text-left"
-                      style={btn.highlight
-                        ? { background: 'linear-gradient(135deg, #7c5bf9, #00d4ff)', color: 'white' }
-                        : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#a0a0c0' }}>
-                      {btn.label}
-                    </button>
-                  ))}
-                </div>
-              )}
+              {/* Profile summary */}
+              <div className="glass-card p-4 space-y-2">
+                <p className="text-xs font-bold text-[#8888b0]">YOUR PROFILE</p>
+                <p className="text-sm font-semibold text-[#f0f0ff]">{profile.name}</p>
+                <p className="text-xs text-[#8888b0]">{cfg.emoji} {cfg.label}</p>
+                <Link href="/onboarding"
+                  className="text-xs text-[#7c5bf9] hover:text-[#a78bfa] transition-colors">
+                  Change profile →
+                </Link>
+              </div>
             </div>
           )}
         </div>

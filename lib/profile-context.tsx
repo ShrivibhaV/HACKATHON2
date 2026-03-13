@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { StudentProfile, WeightedProfile, LearningMode } from './types';
-import { supabase } from './supabase';
+import { supabase, isSupabaseConfigured } from './supabase';
 
 interface ProfileContextType {
   profile: StudentProfile | null;
@@ -28,8 +28,8 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
           const parsed = JSON.parse(stored);
           setProfile(parsed);
           
-          // 2. Try to sync from cloud if we have an ID
-          if (parsed.id) {
+          // 2. Try to sync from cloud if we have an ID and Supabase is configured
+          if (parsed.id && isSupabaseConfigured) {
             const { data, error } = await supabase
               .from('student_profiles')
               .select('*')
@@ -51,6 +51,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const syncToCloud = async (p: StudentProfile) => {
+    if (!isSupabaseConfigured) return;
     try {
       const { error } = await supabase
         .from('student_profiles')

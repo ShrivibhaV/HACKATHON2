@@ -1,5 +1,6 @@
 // User Profile Types
 export type LearningMode = 'standard' | 'dyslexia' | 'adhd' | 'mixed';
+export type AgeGroup = 'child' | 'preteen' | 'teen' | 'adult' | 'teacher';
 
 export interface WeightedProfile {
   standard: number; // 0-100
@@ -10,7 +11,8 @@ export interface WeightedProfile {
 export interface StudentProfile {
   id: string;
   userId: string;
-  ageGroup: 'junior' | 'senior';
+  name: string;
+  ageGroup: AgeGroup;
   gradeLevel: number;
   diagnosisType: string[]; // ['dyslexia', 'adhd', 'none']
   medicationStatus: boolean;
@@ -94,6 +96,11 @@ export interface AIConversation {
   createdAt: Date;
 }
 
+export interface ActionItem {
+  text: string;
+  type: 'must' | 'should' | 'step' | 'remember' | 'key';
+}
+
 export interface TextTransformationResult {
   original: string;
   transformed: string;
@@ -103,6 +110,9 @@ export interface TextTransformationResult {
     term: string;
     explanation: string;
   }>;
+  actionItems: ActionItem[];
+  readingTimeMinutes: number;
+  wordCount: number;
   quiz: Array<{
     question: string;
     options: string[];

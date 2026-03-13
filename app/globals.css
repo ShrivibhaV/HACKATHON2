@@ -521,3 +521,151 @@ html {
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
+
+/* ══════════════════════════════════
+   MODULE B — DYSLEXIA MODE
+══════════════════════════════════ */
+
+/* OpenDyslexic font from CDN (dyslexia-friendly letterforms) */
+@font-face {
+  font-family: 'OpenDyslexic';
+  src: url('https://cdn.jsdelivr.net/npm/open-dyslexic@1.0.3/fonts/OpenDyslexic-Regular.otf') format('opentype');
+  font-weight: 400;
+}
+@font-face {
+  font-family: 'OpenDyslexic';
+  src: url('https://cdn.jsdelivr.net/npm/open-dyslexic@1.0.3/fonts/OpenDyslexic-Bold.otf') format('opentype');
+  font-weight: 700;
+}
+
+/* Applied to the reading content area when profile is dyslexia */
+.dyslexia-mode {
+  font-family: 'OpenDyslexic', 'Lexend', sans-serif !important;
+  letter-spacing: 0.07em;
+  word-spacing: 0.25em;
+  line-height: 2.1;
+  background-color: #fffbf0 !important;
+  color: #2d2d2d !important;
+  border-radius: 12px;
+  padding: 2rem;
+}
+
+/* ADHD distraction-free mode */
+.adhd-focus-mode .nav-glass {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+.adhd-focus-mode .nav-glass:hover {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Focus/reading ruler */
+.reading-ruler {
+  position: fixed;
+  left: 0;
+  right: 0;
+  height: 3rem;
+  background: rgba(124, 91, 249, 0.12);
+  border-top: 2px solid rgba(124, 91, 249, 0.3);
+  border-bottom: 2px solid rgba(124, 91, 249, 0.3);
+  pointer-events: none;
+  z-index: 30;
+  transition: top 0.05s linear;
+}
+
+/* ══════════════════════════════════
+   MODULE A — TEXT SIMPLIFICATION
+══════════════════════════════════ */
+
+/* Keyword highlighting */
+mark.keyword {
+  background: linear-gradient(135deg, rgba(124,91,249,0.25), rgba(0,212,255,0.15));
+  color: #e0d0ff;
+  border-radius: 4px;
+  padding: 0 3px;
+  border-bottom: 2px solid rgba(124,91,249,0.5);
+  font-weight: 600;
+  cursor: help;
+}
+.dyslexia-mode mark.keyword {
+  background: rgba(245,158,11,0.2);
+  color: #7c4500;
+  border-bottom-color: #f59e0b;
+}
+
+/* Simplified word tooltip */
+span.simplified-word {
+  color: #a78bfa;
+  font-style: italic;
+  cursor: help;
+  border-bottom: 1px dashed rgba(124,91,249,0.5);
+  position: relative;
+}
+span.simplified-word:hover::after {
+  content: attr(title);
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  background: rgba(8,8,26,0.95);
+  border: 1px solid rgba(124,91,249,0.4);
+  color: #f0f0ff;
+  font-size: 0.72rem;
+  padding: 4px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+  z-index: 100;
+  pointer-events: none;
+}
+
+/* ADHD chunks */
+.chunk {
+  padding: 1rem 1.25rem;
+  border-radius: 12px;
+  margin-bottom: 0.75rem;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  line-height: 1.8;
+  animation: fadeInUp 0.4s ease both;
+}
+.chunk-num {
+  font-weight: 800;
+  color: rgba(124,91,249,0.8);
+  margin-right: 0.4rem;
+}
+
+/* Reading time badge */
+.reading-time-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: rgba(16,185,129,0.12);
+  border: 1px solid rgba(16,185,129,0.25);
+  color: #34d399;
+}
+
+/* Action item highlight */
+.action-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.6rem 0.8rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+.action-item.must { background: rgba(239,68,68,0.08); border-left: 3px solid #ef4444; color: #fca5a5; }
+.action-item.should { background: rgba(245,158,11,0.08); border-left: 3px solid #f59e0b; color: #fcd34d; }
+.action-item.step { background: rgba(0,212,255,0.08); border-left: 3px solid #00d4ff; color: #67e8f9; }
+.action-item.remember { background: rgba(124,91,249,0.08); border-left: 3px solid #7c5bf9; color: #a78bfa; }
+
+/* Bionic reading bold */
+.content-area b {
+  font-weight: 900;
+  color: inherit;
+}
