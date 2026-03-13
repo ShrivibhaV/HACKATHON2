@@ -2,178 +2,111 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { StudentProfile, WeightedProfile, LearningMode } from './types';
-
-/*
- * ─────────────────────────────────────────────────────────────────────────────
- * Profile Context
- *
- * Storage strategy (in order of priority):
- *  1. PostgreSQL via /api/students  — primary, persistent across devices
- *  2. localStorage ('neurolearn_profile') — cache + offline fallback
- *
- * On mount:  read localStorage (fast) → hydrate UI → then refetch from DB.
- * On save:   write to DB via API → update localStorage cache.
- * On logout: clear both.
- * ─────────────────────────────────────────────────────────────────────────────
- */
+import { supabase, isSupabaseConfigured } from './supabase';
 
 interface ProfileContextType {
   profile: StudentProfile | null;
   loading: boolean;
-  saving: boolean;
-  error: string | null;
-  setProfile: (profile: StudentProfile) => Promise<void>;
-  updateProfile: (updates: Partial<StudentProfile>) => Promise<void>;
-  updateWeighting: (weights: WeightedProfile) => Promise<void>;
+  setProfile: (profile: StudentProfile) => void;
+  updateWeighting: (weights: WeightedProfile) => void;
   getDominantMode: () => LearningMode;
+  syncToCloud: (profile: StudentProfile) => Promise<void>;
   logout: () => void;
 }
 
 const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
 
-// ─── helpers ─────────────────────────────────────────────────────────────────
-
-const LS_KEY = 'neurolearn_profile';
-
-function readCache(): StudentProfile | null {
-  try {
-    const raw = localStorage.getItem(LS_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-}
-
-function writeCache(p: StudentProfile) {
-  try {
-    localStorage.setItem(LS_KEY, JSON.stringify(p));
-  } catch {
-    /* storage full – ignore */
-  }
-}
-
-function clearCache() {
-  try {
-    localStorage.removeItem(LS_KEY);
-    localStorage.removeItem('neurolearn_progress');
-  } catch {
-    /* ignore */
-  }
-}
-
-/** Save profile to PostgreSQL via our server-side API route */
-async function saveToDb(profile: StudentProfile): Promise<void> {
-  const res = await fetch('/api/students', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(profile),
-  });
-
-  if (!res.ok) {
-    const json = await res.json().catch(() => ({}));
-    throw new Error(json.error ?? `HTTP ${res.status}`);
-  }
-}
-
-/** Fetch profile from PostgreSQL by UUID */
-async function fetchFromDb(id: string): Promise<StudentProfile | null> {
-  const res = await fetch(`/api/students?id=${encodeURIComponent(id)}`);
-  if (!res.ok) return null;
-  const json = await res.json();
-  return json.data ?? null;
-}
-
-// ─── Provider ─────────────────────────────────────────────────────────────────
-
 export function ProfileProvider({ children }: { children: React.ReactNode }) {
-  const [profile, setProfileState] = useState<StudentProfile | null>(null);
-  const [loading,  setLoading]  = useState(true);
-  const [saving,   setSaving]   = useState(false);
-  const [error,    setError]    = useState<string | null>(null);
+  const [profile, setProfile] = useState<StudentProfile | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  // ── on mount: hydrate from cache, then sync from DB ──────────────────────
   useEffect(() => {
     const loadProfile = async () => {
-      // Step 1 — show cached profile immediately (fast, no flicker)
-      const cached = readCache();
-      if (cached) {
-        setProfileState(cached);
-        setLoading(false);
-
-        // Step 2 — silently refresh from DB in the background
+      // 1. Check localStorage first (fast)
+      const stored = localStorage.getItem('neurolearn_profile');
+      if (stored) {
         try {
-          const remote = await fetchFromDb(cached.id);
-          if (remote) {
-            setProfileState(remote);
-            writeCache(remote);
+          const parsed = JSON.parse(stored);
+          setProfile(parsed);
+          
+          // 2. Try to sync from cloud if we have an ID and Supabase is configured
+          if (parsed.id && isSupabaseConfigured) {
+            const { data, error } = await supabase
+              .from('student_profiles')
+              .select('*')
+              .eq('id', parsed.id)
+              .single();
+            
+            if (data && !error) {
+              setProfile(data);
+              localStorage.setItem('neurolearn_profile', JSON.stringify(data));
+            }
           }
-        } catch (err) {
-          console.warn('[ProfileContext] DB fetch failed, using cache:', err);
+        } catch (error) {
+          console.error('Failed to parse profile:', error);
         }
-      } else {
-        setLoading(false);
       }
+      setLoading(false);
     };
-
     loadProfile();
   }, []);
 
-  // ── save: DB first, then cache ────────────────────────────────────────────
-  const handleSetProfile = async (newProfile: StudentProfile) => {
-    setSaving(true);
-    setError(null);
-    setProfileState(newProfile);   // optimistic UI update
-    writeCache(newProfile);        // write cache immediately
-
+  const syncToCloud = async (p: StudentProfile) => {
+    if (!isSupabaseConfigured) return;
     try {
-      await saveToDb(newProfile);
+      const { error } = await supabase
+        .from('student_profiles')
+        .upsert({
+          id: p.id,
+          user_id: p.userId || null, // Handle null if no auth yet
+          age_group: p.ageGroup,
+          grade_level: p.gradeLevel,
+          diagnosis_type: p.diagnosisType,
+          medication_status: p.medicationStatus,
+          comfort_level: p.comfortLevel,
+          preferred_background: p.colorPreference,
+          font_scale: p.fontScale,
+          word_spacing: p.wordSpacing,
+          updated_at: new Date().toISOString()
+        });
+      if (error) console.warn('Supabase sync warning:', error.message);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Unknown error';
-      console.error('[ProfileContext] Save to DB failed:', msg);
-      // Keep the profile in state + cache; show a non-blocking warning
-      setError(`Profile saved locally. DB sync failed: ${msg}`);
-    } finally {
-      setSaving(false);
+      console.error('Cloud sync failed:', err);
     }
   };
 
-  // ── update profile ───────────────────────────────────────────────────────
-  const handleUpdateProfile = async (updates: Partial<StudentProfile>) => {
-    if (!profile) return;
-    const updated: StudentProfile = {
-      ...profile,
-      ...updates,
-      updatedAt: new Date(),
-    };
-    await handleSetProfile(updated);
+  const handleSetProfile = (newProfile: StudentProfile) => {
+    setProfile(newProfile);
+    localStorage.setItem('neurolearn_profile', JSON.stringify(newProfile));
+    syncToCloud(newProfile);
   };
 
-  // ── update weighting ─────────────────────────────────────────────────────
-  const handleUpdateWeighting = async (weights: WeightedProfile) => {
-    if (!profile) return;
-    const updated: StudentProfile = {
-      ...profile,
-      weightedProfile: weights,
-      updatedAt: new Date(),
-    };
-    await handleSetProfile(updated);
+  const handleUpdateWeighting = (weights: WeightedProfile) => {
+    if (profile) {
+      const updated = {
+        ...profile,
+        weightedProfile: weights,
+        updatedAt: new Date(),
+      };
+      handleSetProfile(updated);
+    }
   };
 
-  // ── dominant mode helper ─────────────────────────────────────────────────
   const getDominantMode = (): LearningMode => {
     if (!profile) return 'standard';
-    const { dyslexia, adhd, standard } = profile.weightedProfile;
-    if (dyslexia > 40 && adhd > 40) return 'mixed';
-    if (dyslexia > adhd && dyslexia > standard) return 'dyslexia';
-    if (adhd > standard) return 'adhd';
-    return 'standard';
-  };
+    const weights = profile.weightedProfile;
+    
+    // If weights for dyslexia and adhd are both high, return mixed
+    if (weights.dyslexia > 40 && weights.adhd > 40) {
+      return 'mixed';
+    }
 
-  // ── logout ───────────────────────────────────────────────────────────────
-  const logout = () => {
-    clearCache();
-    setProfileState(null);
-    window.location.href = '/';
+    if (weights.dyslexia > weights.adhd && weights.dyslexia > weights.standard) {
+      return 'dyslexia';
+    } else if (weights.adhd > weights.standard) {
+      return 'adhd';
+    }
+    return 'standard';
   };
 
   return (
@@ -181,13 +114,19 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       value={{
         profile,
         loading,
-        saving,
-        error,
         setProfile: handleSetProfile,
-        updateProfile: handleUpdateProfile,
         updateWeighting: handleUpdateWeighting,
         getDominantMode,
-        logout,
+        syncToCloud,
+        logout: () => {
+          localStorage.removeItem('neurolearn_profile');
+          localStorage.removeItem('neurolearn_progress');
+          setProfile(null);
+          if (isSupabaseConfigured) {
+            supabase.auth.signOut();
+          }
+          window.location.href = '/';
+        },
       }}
     >
       {children}

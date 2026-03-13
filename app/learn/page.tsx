@@ -10,7 +10,8 @@ import { ContrastOverlay } from '@/components/learn/ContrastOverlay';
 import { useTTS, TTSWordHighlight } from '@/hooks/useTTS';
 import { getAgeConfig, AgeGroup } from '@/lib/age-config';
 import { LearningMode } from '@/lib/types';
-import { ChevronLeft, BookOpen, Volume2, Zap, Settings, Play, Pause, Square, Eye, EyeOff } from 'lucide-react';
+import { AdaptiveContentViewer } from '@/components/learn/AdaptiveContentViewer';
+import { ChevronLeft, BookOpen, Volume2, Zap, Settings, Play, Pause, Square } from 'lucide-react';
 
 const LESSON = {
   title: 'Photosynthesis: How Plants Make Food',
@@ -18,7 +19,7 @@ const LESSON = {
 };
 
 const MODE_CONFIG = {
-  dyslexia: { label: 'Dyslexia Mode', emoji: '📖', gradient: 'linear-gradient(135deg, #936a22ff, #e040fb)', color: '#a08c68ff' },
+  dyslexia: { label: 'Dyslexia Mode', emoji: '📖', gradient: 'linear-gradient(135deg, #f59e0b, #e040fb)', color: '#f59e0b' },
   adhd: { label: 'ADHD Mode', emoji: '⚡', gradient: 'linear-gradient(135deg, #7c5bf9, #e040fb)', color: '#7c5bf9' },
   standard: { label: 'Standard Mode', emoji: '🧠', gradient: 'linear-gradient(135deg, #00d4ff, #7c5bf9)', color: '#00d4ff' },
   mixed: { label: 'Mixed Mode', emoji: '🌀', gradient: 'linear-gradient(135deg, #e040fb, #00d4ff)', color: '#e040fb' },
@@ -34,13 +35,12 @@ export default function LearnPage() {
 
   const ageGroup: AgeGroup = profile?.ageGroup ?? 'teen';
   const cfg = getAgeConfig(ageGroup);
+  const dominantMode: LearningMode =
+    !profile ? 'standard'
+      : profile.weightedProfile.dyslexia > profile.weightedProfile.adhd ? 'dyslexia'
+        : profile.weightedProfile.adhd > 30 ? 'adhd'
+          : 'standard';
 
-  // Module B: Use preferredMode from profile
-  const dominantMode: LearningMode = profile?.preferredMode || 'standard';
-  
-  // Custom colors for contrast and requested changes
-  const textContrastClass = dominantMode === 'dyslexia' ? 'text-[#2d2d2d]' : 'text-[#f0f0ff]';
-  const breadcrumbActiveColor = dominantMode === 'dyslexia' ? '#a78bfa' : '#f0f0ff';
   const modeInfo = MODE_CONFIG[dominantMode] ?? MODE_CONFIG.standard;
 
   // Pre-transform lesson content — uses child-level simplification if Simplify was clicked
@@ -74,10 +74,7 @@ export default function LearnPage() {
   }
 
   return (
-    <main className="min-h-screen transition-all duration-400 mode-transition">
-
-      {/* ── Module B: Contrast Overlay (Dyslexia) ── */}
-      <ContrastOverlay />
+    <main className={`min-h-screen transition-all duration-200 ${distractionFree ? 'adhd-focus-mode' : ''}`}>
 
       {/* ── Module B: ADHD Focus Ruler ── */}
       <ADHDFocusRuler enabled={focusRulerOn} />
@@ -86,36 +83,17 @@ export default function LearnPage() {
         {/* Breadcrumb */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">
-            <Link href="/" className="hover:text-[#a78bfa] flex items-center gap-1 text-sm transition-colors" style={{ color: 'var(--text-secondary)' }}>
+            <Link href="/" className="text-[#8888b0] hover:text-[#a78bfa] flex items-center gap-1 text-sm transition-colors">
               <ChevronLeft className="w-4 h-4" /> Home
             </Link>
             <span className="text-[#555580]">/</span>
-            <span className="text-sm font-bold transition-colors" style={{ color: 'var(--text-primary)' }}>Learn</span>
+            <span className="text-sm text-[#f0f0ff] font-medium">Learn</span>
           </div>
-
-          <div className="flex items-center gap-3">
-            <ModeSwitcher />
-
-            {dominantMode === 'adhd' && (
-              <button
-                onClick={() => setDistractionFree(!distractionFree)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
-                style={distractionFree
-                  ? { background: 'linear-gradient(135deg, #e040fb, #7c5bf9)', color: 'white' }
-                  : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#8888b0' }
-                }
-              >
-                {distractionFree ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                {distractionFree ? 'Focus Active' : 'Distraction-Free'}
-              </button>
-            )}
-
-            <button onClick={() => setShowSidebar(!showSidebar)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-[#8888b0] transition-all"
-              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-              <Settings className="w-3.5 h-3.5" /> {showSidebar ? 'Hide Tools' : 'Show Tools'}
-            </button>
-          </div>
+          <button onClick={() => setShowSidebar(!showSidebar)}
+            className="md:hidden flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-[#8888b0] transition-all"
+            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+            <Settings className="w-3.5 h-3.5" /> Tools
+          </button>
         </div>
 
         {/* Lesson header */}
@@ -127,13 +105,13 @@ export default function LearnPage() {
                 {modeInfo.emoji}
               </div>
               <div>
-                <h1 className="text-lg md:text-xl font-bold transition-colors" style={{ color: 'var(--text-primary)' }}>{LESSON.title}</h1>
+                <h1 className="text-lg md:text-xl font-bold text-[#f0f0ff]">{LESSON.title}</h1>
                 <div className="flex items-center gap-2 mt-1 flex-wrap">
                   <span className="mode-chip text-white text-xs" style={{ background: modeInfo.gradient }}>
                     {modeInfo.emoji} {modeInfo.label}
                   </span>
-                  <span className="reading-time-badge" style={{ color: 'var(--text-primary)' }}>⏱ {transformation.readingTimeMinutes} min</span>
-                  <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{cfg.emoji} {cfg.label}</span>
+                  <span className="reading-time-badge">⏱ {transformation.readingTimeMinutes} min</span>
+                  <span className="text-xs text-[#8888b0]">{cfg.emoji} {cfg.label}</span>
                 </div>
               </div>
             </div>
@@ -173,8 +151,8 @@ export default function LearnPage() {
             {dominantMode === 'adhd' ? (
               <div className="glass-card p-6">
                 <div className="flex items-center gap-2 mb-5">
-                  <span className="font-bold" style={{ color: 'var(--text-primary)' }}>⚡ Focus Mode</span>
-                  <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>— one chunk at a time, others dimmed</span>
+                  <span className="font-bold text-[#f0f0ff]">⚡ Focus Mode</span>
+                  <span className="text-xs text-[#8888b0]">— one chunk at a time, others dimmed</span>
                   <button
                     onClick={() => setFocusRulerOn(!focusRulerOn)}
                     className="ml-auto px-3 py-1 rounded-lg text-xs font-semibold transition-all"
@@ -203,33 +181,19 @@ export default function LearnPage() {
                 />
               </div>
             ) : (
-              /* Dyslexia / Standard — full text with TTS word highlight */
-              <div
-                className={`glass-card p-8 content-area min-h-80 ${dominantMode === 'dyslexia' ? 'dyslexia-mode' : ''}`}
-                style={dominantMode === 'dyslexia' ? {
-                  fontFamily: 'OpenDyslexic, Lexend, sans-serif',
-                  letterSpacing: '0.06em',
-                  wordSpacing: '0.2em',
-                  lineHeight: 2.1,
-                  backgroundColor: '#fffbf0',
-                  color: 'var(--text-primary)',
-                } : {
-                  lineHeight: cfg.lineHeight,
-                  fontSize: cfg.fontSize,
-                  color: 'var(--text-primary)',
-                }}
-              >
-                {tts.isPlaying || tts.activeWordIndex >= 0 ? (
-                  <p style={{ lineHeight: 'inherit', fontSize: 'inherit' }}>
-                    <TTSWordHighlight
-                      text={LESSON.rawText}
-                      activeWordIndex={tts.activeWordIndex}
-                    />
-                  </p>
-                ) : (
-                  <div dangerouslySetInnerHTML={{ __html: transformation.transformed }} />
-                )}
-              </div>
+              /* Dyslexia / Standard — using the modular viewer with interactive word support */
+              <AdaptiveContentViewer
+                transformation={transformation}
+                mode={dominantMode}
+                fontSize={cfg.fontSize}
+                lineHeight={cfg.lineHeight}
+                wordSpacing={dominantMode === 'dyslexia' ? 0.2 : 0.05}
+                backgroundColor={dominantMode === 'dyslexia' ? '#fffbf0' : '#0f172a'}
+                dyslexiaFontEnabled={dominantMode === 'dyslexia'}
+                ttsActiveWordIndex={tts.activeWordIndex}
+                ttsIsPlaying={tts.isPlaying}
+                rawText={LESSON.rawText}
+              />
             )}
 
             {/* Quick action bar */}
@@ -256,12 +220,12 @@ export default function LearnPage() {
 
           {/* ── Sidebar ── */}
           {showSidebar && (
-            <div className="lg:col-span-1 space-y-4 animate-fade-in-up delay-200 sticky top-24 h-fit">
+            <div className="lg:col-span-1 space-y-4 animate-fade-in-up delay-200">
 
               {/* Key terms */}
               {transformation.keyTerms.length > 0 && (
-                <div className="glass-card p-4 space-y-3">
-                  <h3 className="font-bold text-sm flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+                <div className="glass-card p-4 space-y-3 sticky top-20">
+                  <h3 className="font-bold text-sm text-[#f0f0ff] flex items-center gap-2">
                     <BookOpen className="w-4 h-4 text-[#a78bfa]" /> Key Terms
                   </h3>
                   <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
@@ -269,7 +233,7 @@ export default function LearnPage() {
                       <div key={i} className="p-3 rounded-lg"
                         style={{ background: 'rgba(124,91,249,0.07)', border: '1px solid rgba(124,91,249,0.12)' }}>
                         <p className="text-xs font-bold text-[#a78bfa] mb-1">{term.term}</p>
-                        <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{term.explanation}</p>
+                        <p className="text-xs text-[#8888b0] leading-relaxed">{term.explanation}</p>
                       </div>
                     ))}
                   </div>
@@ -279,15 +243,15 @@ export default function LearnPage() {
               {/* ADHD sidebar extras */}
               {dominantMode === 'adhd' && (
                 <div className="glass-card p-4 space-y-4">
-                  <h3 className="font-bold text-sm flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+                  <h3 className="font-bold text-sm text-[#f0f0ff] flex items-center gap-2">
                     <Zap className="w-4 h-4 text-[#7c5bf9]" /> Focus Boost
                   </h3>
                   <div>
-                    <p className="text-xs mb-1" style={{ color: 'var(--text-secondary)' }}>🔥 TODAY'S STREAK</p>
+                    <p className="text-xs text-[#8888b0] mb-1">🔥 TODAY'S STREAK</p>
                     <p className="text-2xl font-extrabold" style={{ color: '#f59e0b' }}>5 days</p>
                   </div>
                   <div>
-                    <p className="text-xs mb-2" style={{ color: 'var(--text-secondary)' }}>LESSON PROGRESS</p>
+                    <p className="text-xs text-[#8888b0] mb-2">LESSON PROGRESS</p>
                     <div className="h-2 rounded-full" style={{ background: 'rgba(255,255,255,0.08)' }}>
                       <div className="h-full rounded-full transition-all duration-700"
                         style={{
@@ -295,7 +259,7 @@ export default function LearnPage() {
                           background: 'linear-gradient(90deg, #7c5bf9, #00d4ff)'
                         }} />
                     </div>
-                    <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
+                    <p className="text-xs text-[#8888b0] mt-1">
                       Chunk {activeChunk + 1} of {transformation.chunks.length}
                     </p>
                   </div>
@@ -304,9 +268,9 @@ export default function LearnPage() {
 
               {/* Profile summary */}
               <div className="glass-card p-4 space-y-2">
-                <p className="text-xs font-bold" style={{ color: 'var(--text-secondary)' }}>YOUR PROFILE</p>
-                <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{profile.name}</p>
-                <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{cfg.emoji} {cfg.label}</p>
+                <p className="text-xs font-bold text-[#8888b0]">YOUR PROFILE</p>
+                <p className="text-sm font-semibold text-[#f0f0ff]">{profile.name}</p>
+                <p className="text-xs text-[#8888b0]">{cfg.emoji} {cfg.label}</p>
                 <Link href="/onboarding"
                   className="text-xs text-[#7c5bf9] hover:text-[#a78bfa] transition-colors">
                   Change profile →

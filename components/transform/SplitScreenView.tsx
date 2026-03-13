@@ -38,11 +38,11 @@ export function SplitScreenView({ original, result, mode, ageGroup = 'teen' }: S
         {modeInfo.badge}
       </span>
       <span className="px-2.5 py-1 rounded-full font-semibold"
-        style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-secondary)', border: '1px solid rgba(255,255,255,0.08)' }}>
+        style={{ background: 'rgba(255,255,255,0.05)', color: '#8888b0', border: '1px solid rgba(255,255,255,0.08)' }}>
         📝 {result.wordCount} words
       </span>
       <span className="px-2.5 py-1 rounded-full font-semibold"
-        style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-secondary)', border: '1px solid rgba(255,255,255,0.08)' }}>
+        style={{ background: 'rgba(255,255,255,0.05)', color: '#8888b0', border: '1px solid rgba(255,255,255,0.08)' }}>
         {cfg.emoji} {cfg.label}
       </span>
     </div>
@@ -78,12 +78,12 @@ export function SplitScreenView({ original, result, mode, ageGroup = 'teen' }: S
         </button>
       )}
       <div className="flex items-center gap-1 ml-2">
-        <Volume2 className="w-3 h-3" style={{ color: 'var(--text-muted)' }} />
+        <Volume2 className="w-3 h-3 text-[#555580]" />
         <select
           onChange={(e) => tts.setRate(parseFloat(e.target.value))}
           defaultValue="0.9"
           className="text-xs rounded px-1 py-0.5 outline-none"
-          style={{ background: 'rgba(255,255,255,0.06)', color: 'var(--text-secondary)', border: '1px solid rgba(255,255,255,0.08)' }}
+          style={{ background: 'rgba(255,255,255,0.06)', color: '#8888b0', border: '1px solid rgba(255,255,255,0.08)' }}
         >
           <option value="0.6">0.6×</option>
           <option value="0.8">0.8×</option>
@@ -110,7 +110,7 @@ export function SplitScreenView({ original, result, mode, ageGroup = 'teen' }: S
               className="px-3 py-1.5 text-xs font-semibold transition-all"
               style={viewMode === v
                 ? { background: 'linear-gradient(135deg, #7c5bf9, #00d4ff)', color: 'white' }
-                : { background: 'rgba(255,255,255,0.03)', color: 'var(--text-secondary)' }
+                : { background: 'rgba(255,255,255,0.03)', color: '#8888b0' }
               }
             >
               {v === 'split' ? '⬛⬛ Split' : v === 'original' ? '📄 Original' : '✨ Adapted'}
@@ -135,7 +135,7 @@ export function SplitScreenView({ original, result, mode, ageGroup = 'teen' }: S
                 }}
               />
             ))}
-            <span className="text-xs ml-2" style={{ color: 'var(--text-secondary)' }}>Playing word-by-word...</span>
+            <span className="text-xs text-[#8888b0] ml-2">Playing word-by-word...</span>
           </div>
         )}
       </div>
@@ -147,14 +147,14 @@ export function SplitScreenView({ original, result, mode, ageGroup = 'teen' }: S
           <div className="space-y-2">
             <div className="flex items-center gap-2 px-1">
               <div className="w-2 h-2 rounded-full bg-red-500" />
-              <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>Dense Original</span>
+              <span className="text-xs font-semibold text-[#8888b0] uppercase tracking-wider">Dense Original</span>
             </div>
             <div
               className="p-5 rounded-xl overflow-y-auto min-h-80 max-h-[480px] leading-relaxed text-sm"
               style={{
                 background: 'rgba(239,68,68,0.04)',
                 border: '1px solid rgba(239,68,68,0.15)',
-                color: 'var(--text-secondary)',
+                color: '#8888b0',
                 fontFamily: 'serif',
                 lineHeight: 1.6,
               }}
@@ -176,7 +176,7 @@ export function SplitScreenView({ original, result, mode, ageGroup = 'teen' }: S
               style={{
                 background: mode === 'dyslexia' ? '#fffbf0' : 'rgba(124,91,249,0.06)',
                 border: `1px solid ${modeInfo.color}33`,
-                color: 'var(--text-primary)',
+                color: mode === 'dyslexia' ? '#2d2d2d' : '#c0c0e0',
                 fontFamily: mode === 'dyslexia' ? 'OpenDyslexic, Lexend, sans-serif' : 'Lexend, sans-serif',
                 letterSpacing: mode === 'dyslexia' ? '0.05em' : '0',
                 lineHeight: cfg.lineHeight,
@@ -205,7 +205,7 @@ export function SplitScreenView({ original, result, mode, ageGroup = 'teen' }: S
           style={{
             background: 'rgba(239,68,68,0.04)',
             border: '1px solid rgba(239,68,68,0.15)',
-            color: 'var(--text-secondary)',
+            color: '#8888b0',
             fontFamily: 'serif',
           }}
         >
@@ -220,7 +220,7 @@ export function SplitScreenView({ original, result, mode, ageGroup = 'teen' }: S
           style={{
             background: mode === 'dyslexia' ? '#fffbf0' : 'rgba(124,91,249,0.06)',
             border: `1px solid ${modeInfo.color}33`,
-            color: 'var(--text-primary)',
+            color: mode === 'dyslexia' ? '#2d2d2d' : '#c0c0e0',
             fontFamily: mode === 'dyslexia' ? 'OpenDyslexic, Lexend, sans-serif' : 'Lexend, sans-serif',
             letterSpacing: mode === 'dyslexia' ? '0.05em' : '0',
             lineHeight: cfg.lineHeight,
@@ -245,12 +245,12 @@ export function SplitScreenView({ original, result, mode, ageGroup = 'teen' }: S
       >
         <span className="text-xl">💡</span>
         <div>
-          <p className="font-semibold text-sm mb-0.5" style={{ color: 'var(--text-primary)' }}>
+          <p className="font-semibold text-[#f0f0ff] text-sm mb-0.5">
             {mode === 'dyslexia' ? 'Bionic Reading + OpenDyslexic Font' :
              mode === 'adhd' ? 'Content Chunked + Action Items Flagged' :
              'Vocabulary Simplified + Keywords Highlighted'}
           </p>
-          <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+          <p className="text-xs text-[#8888b0] leading-relaxed">
             {mode === 'dyslexia'
               ? 'Bold word starts (first 40%) guide eyes naturally. Warm background reduces visual stress. OpenDyslexic letterforms reduce letter-reversal.'
               : mode === 'adhd'

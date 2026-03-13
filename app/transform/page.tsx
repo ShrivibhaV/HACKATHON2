@@ -95,6 +95,7 @@ export default function TransformPage() {
 
   return (
     <main className="min-h-screen">
+
       <div className="max-w-7xl mx-auto px-4 py-10">
         {/* ── Header ── */}
         <div className="text-center mb-12">
@@ -108,12 +109,12 @@ export default function TransformPage() {
           <h1 className="text-4xl md:text-5xl font-extrabold mb-3">
             <span className="gradient-text">Transform Any Text</span>
           </h1>
-          <p className="text-lg max-w-xl mx-auto" style={{ color: 'var(--text-secondary)' }}>
+          <p className="text-lg text-[#8888b0] max-w-xl mx-auto">
             Paste dense academic text — we'll convert it into a neuro-friendly workspace in under a second.
           </p>
           {profile && (
             <div className="mt-4 flex items-center justify-center gap-2 flex-wrap">
-              <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Profile loaded:</span>
+              <span className="text-sm text-[#8888b0]">Profile loaded:</span>
               <span className="px-3 py-1 rounded-full text-xs font-bold"
                 style={{ background: 'rgba(124,91,249,0.15)', color: '#a78bfa', border: '1px solid rgba(124,91,249,0.3)' }}>
                 {cfg.emoji} {profile.name} · {cfg.label}
@@ -129,7 +130,7 @@ export default function TransformPage() {
             {/* Mode selector (only shows if no profile) */}
             {!profile && (
               <div className="glass-card p-5 space-y-3">
-                <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Adaptation Mode</p>
+                <p className="text-sm font-semibold text-[#f0f0ff]">Adaptation Mode</p>
                 <div className="grid grid-cols-3 gap-3">
                   {(['dyslexia', 'adhd', 'standard'] as const).map((mode) => {
                     const colors: Record<string, string> = { dyslexia: '#f59e0b', adhd: '#7c5bf9', standard: '#00d4ff' };
@@ -141,7 +142,7 @@ export default function TransformPage() {
                         className="py-2.5 px-3 rounded-xl text-sm font-semibold transition-all"
                         style={selectedMode === mode
                           ? { background: `${colors[mode]}22`, border: `1px solid ${colors[mode]}66`, color: colors[mode] }
-                          : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'var(--text-secondary)' }
+                          : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#8888b0' }
                         }
                       >
                         {labels[mode]}
@@ -154,8 +155,8 @@ export default function TransformPage() {
             {/* Text input */}
             <div className="glass-card p-5 space-y-3">
               <div className="flex items-center justify-between">
-                <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Paste Your Text</p>
-                <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                <p className="text-sm font-semibold text-[#f0f0ff]">Paste Your Text</p>
+                <span className="text-xs text-[#555580]">
                   {inputText.trim().split(/\s+/).filter(Boolean).length} words
                   {inputText.length > 0 && (
                     <span className={inputText.trim().split(/\s+/).length >= 500 ? ' text-[#34d399]' : ' text-[#f59e0b]'}>
@@ -169,16 +170,14 @@ export default function TransformPage() {
                 onChange={(e) => { setInputText(e.target.value); setResult(null); }}
                 placeholder="Paste any dense academic paragraph here — a textbook excerpt, scientific paper, history lesson... At least 30 words for best results."
                 rows={10}
-                className="w-full px-4 py-3 rounded-xl text-sm outline-none resize-none transition-all focus:ring-1"
+                className="w-full px-4 py-3 rounded-xl text-sm text-[#c0c0e0] placeholder-[#444466] outline-none resize-none transition-all focus:ring-1"
                 style={{
                   background: 'rgba(255,255,255,0.04)',
                   border: '1px solid rgba(255,255,255,0.08)',
-                  color: 'var(--text-primary)',
-                  '--tw-placeholder-opacity': '1',
-                  placeholderColor: 'var(--text-muted)',
                   fontFamily: 'Lexend, sans-serif',
                   lineHeight: 1.7,
-                } as any}
+                  ':focus': { ringColor: '#7c5bf9' }
+                } as React.CSSProperties}
               />
             </div>
 
@@ -206,8 +205,8 @@ export default function TransformPage() {
           {/* ── RIGHT: Samples ── */}
           <div className="space-y-3">
             <div className="glass-card p-5 space-y-3">
-              <h3 className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>📚 Try a Sample</h3>
-              <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Load a 500+ word academic text to see the transformation in action.</p>
+              <h3 className="font-bold text-[#f0f0ff] text-sm">📚 Try a Sample</h3>
+              <p className="text-xs text-[#8888b0]">Load a 500+ word academic text to see the transformation in action.</p>
               <div className="space-y-2">
                 {(Object.entries(SAMPLES) as [SampleKey, typeof SAMPLES[SampleKey]][]).map(([key, s]) => (
                   <button
@@ -219,8 +218,8 @@ export default function TransformPage() {
                       border: inputText === s.text ? '1px solid rgba(124,91,249,0.4)' : '1px solid rgba(255,255,255,0.07)',
                     }}
                   >
-                    <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{s.title}</p>
-                    <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>{s.desc}</p>
+                    <p className="text-sm font-semibold text-[#f0f0ff]">{s.title}</p>
+                    <p className="text-xs text-[#8888b0] mt-0.5">{s.desc}</p>
                   </button>
                 ))}
               </div>
@@ -228,8 +227,8 @@ export default function TransformPage() {
 
             {/* What happens info card */}
             <div className="glass-card p-5 space-y-3">
-              <h3 className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>⚙️ What happens?</h3>
-              <ol className="space-y-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
+              <h3 className="font-bold text-[#f0f0ff] text-sm">⚙️ What happens?</h3>
+              <ol className="space-y-2 text-xs text-[#8888b0]">
                 {[
                   'Text split into age-sized chunks',
                   'Complex words simplified to your level',
@@ -258,15 +257,15 @@ export default function TransformPage() {
 
             {/* Headline */}
             <div className="text-center">
-              <h2 className="text-3xl font-extrabold mb-2" style={{ color: 'var(--text-primary)' }}>
+              <h2 className="text-3xl font-extrabold text-[#f0f0ff] mb-2">
                 ✨ Your Neuro-Friendly Version
               </h2>
-              <p style={{ color: 'var(--text-secondary)' }}>
+              <p className="text-[#8888b0]">
                 Left: the original dense text. Right: adapted for your brain.
               </p>
             </div>
 
-            {/* Split screen */}
+            {/* Split screen comparison */}
             <div className="glass-card p-6">
               <SplitScreenView
                 original={inputText}
@@ -276,16 +275,25 @@ export default function TransformPage() {
               />
             </div>
 
+            {/* ── Visual Concept Map (Moved Up) ── */}
+            {result.keyTerms.length > 0 && (
+              <VisualMap
+                title={inputText.trim().split('.')[0].substring(0, 40) || 'Concept Map'}
+                keyTerms={result.keyTerms}
+                rawText={result.transformed.replace(/<[^>]+>/g, '')}
+              />
+            )}
+
             {/* Action buttons */}
             <div className="flex gap-3 justify-center flex-wrap">
               <button onClick={handleCopy}
                 className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-80"
-                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-primary)' }}>
+                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#c0c0e0' }}>
                 {copied ? '✓ Copied!' : <><Copy className="w-4 h-4" /> Copy Adapted Text</>}
               </button>
               <button onClick={handleDownload}
                 className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-80"
-                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-primary)' }}>
+                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#c0c0e0' }}>
                 <Download className="w-4 h-4" /> Download .txt
               </button>
             </div>
@@ -297,10 +305,10 @@ export default function TransformPage() {
                   onClick={() => setShowActionItems(!showActionItems)}
                   className="w-full flex items-center justify-between"
                 >
-                  <span className="font-bold" style={{ color: 'var(--text-primary)' }}>
+                  <span className="font-bold text-[#f0f0ff]">
                     📌 Action Items & Key Steps ({result.actionItems.length})
                   </span>
-                  {showActionItems ? <ChevronUp className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} /> : <ChevronDown className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />}
+                  {showActionItems ? <ChevronUp className="w-4 h-4 text-[#8888b0]" /> : <ChevronDown className="w-4 h-4 text-[#8888b0]" />}
                 </button>
                 {showActionItems && (
                   <div className="space-y-2">
@@ -320,7 +328,7 @@ export default function TransformPage() {
             {/* Key terms */}
             {result.keyTerms.length > 0 && (
               <div className="glass-card p-5 space-y-4">
-                <h3 className="font-bold" style={{ color: 'var(--text-primary)' }}>📚 Key Terms Glossary</h3>
+                <h3 className="font-bold text-[#f0f0ff]">📚 Key Terms Glossary</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {result.keyTerms.map((term, i) => (
                     <div key={i} className="p-4 rounded-xl"
@@ -330,7 +338,7 @@ export default function TransformPage() {
                           {term.term}
                         </mark>
                       </p>
-                      <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{term.explanation}</p>
+                      <p className="text-xs text-[#8888b0] leading-relaxed">{term.explanation}</p>
                     </div>
                   ))}
                 </div>
@@ -355,12 +363,14 @@ function QuizSection({ quiz }: { quiz: TextTransformationResult['quiz'] }) {
   return (
     <div className="glass-card p-5 space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="font-bold" style={{ color: 'var(--text-primary)' }}>🎯 Quick Comprehension Check</h3>
+        <h3 className="font-bold text-[#f0f0ff]">🎯 Quick Comprehension Check</h3>
         {submitted && (
           <span className="px-3 py-1 rounded-full text-xs font-bold"
-            style={{ background: score === quiz.length ? 'rgba(16,185,129,0.15)' : 'rgba(245,158,11,0.15)',
-                     color: score === quiz.length ? '#34d399' : '#f59e0b',
-                     border: `1px solid ${score === quiz.length ? 'rgba(16,185,129,0.3)' : 'rgba(245,158,11,0.3)'}` }}>
+            style={{
+              background: score === quiz.length ? 'rgba(16,185,129,0.15)' : 'rgba(245,158,11,0.15)',
+              color: score === quiz.length ? '#34d399' : '#f59e0b',
+              border: `1px solid ${score === quiz.length ? 'rgba(16,185,129,0.3)' : 'rgba(245,158,11,0.3)'}`
+            }}>
             {score}/{quiz.length} Correct {score === quiz.length ? '🎉' : ''}
           </span>
         )}
@@ -368,7 +378,7 @@ function QuizSection({ quiz }: { quiz: TextTransformationResult['quiz'] }) {
       {quiz.map((q, qi) => (
         <div key={qi} className="p-4 rounded-xl space-y-3"
           style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-          <p className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>{qi + 1}. {q.question}</p>
+          <p className="font-medium text-[#f0f0ff] text-sm">{qi + 1}. {q.question}</p>
           <div className="space-y-2">
             {q.options.map((opt, oi) => {
               const isSelected = answers[qi] === oi;

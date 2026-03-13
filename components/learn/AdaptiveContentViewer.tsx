@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { LearningMode, TextTransformationResult } from '@/lib/types';
 import DOMPurify from 'dompurify';
 import { SoundBallSimulator } from '../learning/SoundBallSimulator';
+import { TTSWordHighlight } from '@/hooks/useTTS';
 import { Card } from '@/components/ui/card';
 
 interface AdaptiveContentViewerProps {
@@ -14,6 +15,9 @@ interface AdaptiveContentViewerProps {
   fontSize?: number;
   backgroundColor?: string;
   dyslexiaFontEnabled?: boolean;
+  ttsActiveWordIndex?: number;
+  ttsIsPlaying?: boolean;
+  rawText: string;
 }
 
 export function AdaptiveContentViewer({
@@ -24,6 +28,9 @@ export function AdaptiveContentViewer({
   fontSize = 16,
   backgroundColor = '#ffffff',
   dyslexiaFontEnabled = false,
+  ttsActiveWordIndex = -1,
+  ttsIsPlaying = false,
+  rawText,
 }: AdaptiveContentViewerProps) {
   const [selectedComplexWord, setSelectedComplexWord] = React.useState<{ word: string, syllables: string[] } | null>(null);
 
@@ -91,14 +98,28 @@ export function AdaptiveContentViewer({
         </div>
       )}
 
-      <div
-        className="prose dark:prose-invert max-w-none glass-card cursor-text"
-        style={styles as React.CSSProperties}
-        onClick={handleTextClick}
-        dangerouslySetInnerHTML={{
-          __html: DOMPurify.sanitize(transformation.transformed),
-        }}
-      />
+      {ttsIsPlaying || ttsActiveWordIndex >= 0 ? (
+        <div 
+          className="prose dark:prose-invert max-w-none glass-card p-8"
+          style={styles as React.CSSProperties}
+        >
+          <p style={{ lineHeight: 'inherit', fontSize: 'inherit' }}>
+            <TTSWordHighlight
+              text={rawText}
+              activeWordIndex={ttsActiveWordIndex}
+            />
+          </p>
+        </div>
+      ) : (
+        <div
+          className="prose dark:prose-invert max-w-none glass-card cursor-text"
+          style={styles as React.CSSProperties}
+          onClick={handleTextClick}
+          dangerouslySetInnerHTML={{
+            __html: DOMPurify.sanitize(transformation.transformed),
+          }}
+        />
+      )}
     </div>
   );
 }

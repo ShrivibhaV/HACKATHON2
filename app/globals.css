@@ -51,11 +51,6 @@
   --sidebar-accent-foreground: #f0f0ff;
   --sidebar-border: rgba(255, 255, 255, 0.06);
   --sidebar-ring: rgba(124, 91, 249, 0.4);
-
-  /* ── Dynamic Text Variables ── */
-  --text-primary: #f0f0ff;
-  --text-secondary: #8888b0;
-  --text-muted: #555580;
 }
 
 /* Force dark mode always — this is a neuro-friendly dark app */
@@ -190,8 +185,8 @@ html {
 .glass-card {
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border-radius: var(--radius-xl);
 }
 
@@ -370,24 +365,6 @@ html {
   }
 }
 
-@keyframes fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes progress-grow {
-  from { width: 0%; }
-  to { width: 100%; }
-}
-
-.animate-fade-in {
-  animation: fade-in 0.4s ease-out both;
-}
-
-.animate-progress-grow {
-  animation: progress-grow 1.5s cubic-bezier(0.65, 0, 0.35, 1) both;
-}
-
 .animate-fade-in-up {
   animation: fadeInUp 0.6s ease both;
 }
@@ -469,8 +446,8 @@ html {
 /* Nav glass */
 .nav-glass {
   background: rgba(8, 8, 26, 0.8);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
@@ -571,10 +548,6 @@ html {
   color: #1a1a1a !important; 
   border-radius: 12px;
   padding: 3rem !important;
-
-  --text-primary: #1a1a1a;
-  --text-secondary: #4a4a6a;
-  --text-muted: #6a6a8a;
 }
 
 /* ADHD chunks in transformed view */
@@ -598,22 +571,6 @@ html {
 .adhd-focus-mode .nav-glass:hover {
   opacity: 1;
   pointer-events: auto;
-}
-
-.adhd-focus-mode .glass-card,
-.adhd-focus-mode .nav-glass,
-.adhd-focus-mode .glass-shadcn {
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-}
-
-.dyslexia-mode .glass-card,
-.dyslexia-mode .glass-shadcn {
-  background-color: rgba(0, 0, 0, 0.03) !important;
-  border: 1px solid rgba(0, 0, 0, 0.1) !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  box-shadow: none !important;
 }
 
 /* Focus/reading ruler */

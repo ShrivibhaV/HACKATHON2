@@ -12,8 +12,7 @@ export function AgeAppropriateWrapper({ children }: AgeAppropriateWrapperProps) 
   
   if (!profile) return <>{children}</>;
 
-  const isJunior = profile.ageGroup === 'child';
-  const mode = profile.preferredMode || 'standard';
+  const isJunior = profile.ageGroup === 'junior';
   
   // Apply global scaling based on age
   // Junior: 20% larger fonts, larger tap targets
@@ -29,15 +28,9 @@ export function AgeAppropriateWrapper({ children }: AgeAppropriateWrapperProps) 
     '--radius-scale': '1.0',
   };
 
-  const modeClasses = [
-    mode === 'dyslexia' ? 'dyslexia-mode' : '',
-    mode === 'adhd' ? 'adhd-focus-mode' : '',
-    isJunior ? 'junior-mode' : 'senior-mode'
-  ].filter(Boolean).join(' ');
-
   return (
     <div 
-      className={`min-h-screen transition-all duration-700 ${modeClasses}`}
+      className={`min-h-screen transition-all duration-700 ${isJunior ? 'junior-mode' : 'senior-mode'}`}
       style={scalingStyles as React.CSSProperties}
     >
       {isJunior && (

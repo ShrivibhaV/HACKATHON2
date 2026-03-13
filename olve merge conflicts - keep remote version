@@ -1,0 +1,17 @@
+app/globals.css
+app/layout.tsx
+app/learn/page.tsx
+app/onboarding/page.tsx
+app/transform/page.tsx
+components/learn/ADHDFocusRuler.tsx
+components/learn/AdaptiveContentViewer.tsx
+components/learn/AgeAppropriateWrapper.tsx
+components/learn/FocusNudge.tsx
+components/learning/SoundBallSimulator.tsx
+components/transform/SplitScreenView.tsx
+lib/openai-integration.ts
+lib/profile-context.tsx
+lib/text-transformers.ts
+package-lock.json
+package.json
+styles/globals.css

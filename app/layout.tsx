@@ -36,20 +36,6 @@ export default function RootLayout({
           </AgeAppropriateWrapper>
         </ProfileProvider>
         <Analytics />
-        {/* Cleanup stale Service Workers from previous PWA versions to stop 404s */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.getRegistrations().then((registrations) => {
-                  for (const registration of registrations) {
-                    registration.unregister();
-                  }
-                });
-              }
-            `,
-          }}
-        />
       </body>
     </html>
   )

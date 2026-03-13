@@ -44,9 +44,8 @@ export function ADHDFocusRuler({ enabled, containerRef }: ADHDFocusRulerProps) {
       {/* Dark overlay above the ruler */}
       <div
         className="fixed inset-0 z-20 pointer-events-none"
-        style={{ background: 'rgba(8,8,26,0.65)' }}
+        style={{ background: 'rgba(8,8,26,0.55)', backdropFilter: 'blur(1px)' }}
       />
- Sands of Time: increased opacity slightly to compensate for lost focus from blur.
       {/* The ruler strip — sits on top of overlay, reveals the current line */}
       <div
         ref={rulerRef}
@@ -93,7 +92,6 @@ export function ADHDChunkFocus({
 }) {
   const [activeIdx, setActiveIdx] = useState(initialChunk);
   const [completed, setCompleted] = useState<Set<number>>(new Set());
-  const [showScore, setShowScore] = useState(false);
 
   const goTo = (idx: number) => {
     setActiveIdx(idx);
@@ -154,6 +152,7 @@ export function ADHDChunkFocus({
                   ? '1px solid rgba(16,185,129,0.2)'
                   : '1px solid rgba(255,255,255,0.04)',
                 opacity: isActive ? 1 : 0.35,
+                filter: isActive ? 'none' : 'blur(0.5px)',
                 transform: isActive ? 'scale(1.005)' : 'scale(1)',
                 boxShadow: isActive ? '0 4px 24px rgba(124,91,249,0.15)' : 'none',
               }}
@@ -201,14 +200,12 @@ export function ADHDChunkFocus({
         </button>
 
         <button
-          onClick={activeIdx === chunks.length - 1 ? () => {
-            setCompleted(prev => new Set([...prev, activeIdx]));
-            setShowScore(true);
-          } : goNext}
+          onClick={goNext}
+          disabled={activeIdx === chunks.length - 1}
           className="flex-1 py-2 rounded-lg text-sm font-bold transition-all hover:opacity-90"
           style={
             activeIdx === chunks.length - 1
-              ? { background: 'rgba(16,185,129,0.15)', color: '#34d399', border: '1px solid rgba(16,185,129,0.3)', cursor: 'pointer' }
+              ? { background: 'rgba(16,185,129,0.15)', color: '#34d399', border: '1px solid rgba(16,185,129,0.3)' }
               : { background: 'linear-gradient(135deg, #7c5bf9, #00d4ff)', color: 'white' }
           }
         >
@@ -216,49 +213,14 @@ export function ADHDChunkFocus({
         </button>
       </div>
 
-      {/* Formal Completion Score Card */}
-      {showScore && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#08081a]/90 backdrop-blur-md animate-fade-in">
-          <div className="glass-card max-w-sm w-full p-8 text-center space-y-6 shadow-2xl border-white/10">
-            <div className="w-20 h-20 rounded-full bg-green-500/20 flex items-center justify-center mx-auto mb-2 text-4xl animate-bounce">
-              🌟
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold text-white mb-1">Section Complete!</h2>
-              <p className="text-sm text-[#8888b0]">Your focus during this session was excellent.</p>
-            </div>
-            
-            <div className="space-y-3">
-              <div className="flex justify-between text-xs font-bold text-[#8888b0] px-1">
-                <span>COMPLETION ACCURACY</span>
-                <span className="text-green-400">100%</span>
-              </div>
-              <div className="h-6 w-full bg-white/5 rounded-full overflow-hidden p-1 border border-white/10">
-                <div 
-                  className="h-full bg-gradient-to-r from-green-500 via-emerald-400 to-green-500 rounded-full" 
-                  style={{ width: '100%', transition: 'width 1s ease-out' }} 
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4 py-2">
-              <div className="p-4 rounded-2xl bg-white/5 border border-white/5">
-                <p className="text-[10px] text-[#8888b0] uppercase font-bold mb-1">IDEAS READ</p>
-                <p className="text-2xl font-bold text-white">{chunks.length}</p>
-              </div>
-              <div className="p-4 rounded-2xl bg-white/5 border border-white/5">
-                <p className="text-[10px] text-[#8888b0] uppercase font-bold mb-1">FOCUS LEVEL</p>
-                <p className="text-2xl font-bold text-green-400">HIGH</p>
-              </div>
-            </div>
-
-            <button 
-              onClick={() => setShowScore(false)}
-              className="w-full py-4 rounded-2xl bg-green-500 text-white font-bold hover:bg-green-600 transition-all shadow-lg shadow-green-500/20 active:scale-95"
-            >
-              Continue Learning
-            </button>
-          </div>
+      {/* Completion message */}
+      {completed.size === chunks.length && (
+        <div
+          className="p-4 rounded-xl text-center animate-scale-in"
+          style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)' }}
+        >
+          <p className="text-lg font-bold text-[#34d399]">🎉 Section Complete!</p>
+          <p className="text-sm text-[#8888b0] mt-1">You read all {chunks.length} chunks. Amazing focus!</p>
         </div>
       )}
     </div>

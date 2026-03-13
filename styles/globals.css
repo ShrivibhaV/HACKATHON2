@@ -1,20 +1,6 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
-/* ── OpenDyslexic Font ── */
-@font-face {
-  font-family: 'OpenDyslexic';
-  src: url('https://cdn.jsdelivr.net/npm/open-dyslexic@1.0.3/OpenDyslexic-Regular.otf') format('opentype');
-  font-weight: normal;
-  font-style: normal;
-}
-@font-face {
-  font-family: 'OpenDyslexic';
-  src: url('https://cdn.jsdelivr.net/npm/open-dyslexic@1.0.3/OpenDyslexic-Bold.otf') format('opentype');
-  font-weight: bold;
-  font-style: normal;
-}
-
 @custom-variant dark (&:is(.dark *));
 
 :root {
@@ -51,10 +37,6 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
-
-  --text-primary: #1a1a1a;
-  --text-secondary: #4a4a6a;
-  --text-muted: #6a6a8a;
 }
 
 .dark {
@@ -90,10 +72,6 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(0.269 0 0);
   --sidebar-ring: oklch(0.439 0 0);
-
-  --text-primary: #f0f0ff;
-  --text-secondary: #8888b0;
-  --text-muted: #555580;
 }
 
 @theme inline {
@@ -144,43 +122,4 @@
   body {
     @apply bg-background text-foreground;
   }
-}
-
-/* ── Adaptive UI Modules ── */
-
-.dyslexia-mode {
-  font-family: 'OpenDyslexic', 'Lexend', sans-serif !important;
-  line-height: 2 !important;
-  letter-spacing: 0.12em !important;
-  word-spacing: 0.25em !important;
-  background-color: #fffbf0 !important;
-  color: #2d2d2d !important;
-  
-  --text-primary: #1a1a1a;
-  --text-secondary: #4a4a6a;
-  --text-muted: #6a6a8a;
-}
-
-.high-contrast-overlay {
-  background-color: rgba(255, 253, 224, 0.05); /* Very subtle warm tint to reduce glare */
-  mix-blend-mode: multiply;
-  pointer-events: none;
-  position: fixed;
-  inset: 0;
-  z-index: 40;
-}
-
-.adhd-focus-mode .nav-glass,
-.adhd-focus-mode aside,
-.adhd-focus-mode .sidebar-container {
-  display: none !important;
-}
-
-.adhd-focus-mode main {
-  padding-top: 2rem !important;
-}
-
-/* Smooth transitions */
-.mode-transition {
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
