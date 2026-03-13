@@ -6,9 +6,10 @@ import { useProfile } from '@/lib/profile-context';
 import { transformTextForLearner } from '@/lib/text-transformers';
 import { ADHDFocusRuler, ADHDChunkFocus } from '@/components/learn/ADHDFocusRuler';
 import { FocusNudge } from '@/components/learn/FocusNudge';
-import { useTTS, TTSWordHighlight } from '@/hooks/useTTS';
+import { useTTS } from '@/hooks/useTTS';
 import { getAgeConfig, AgeGroup } from '@/lib/age-config';
 import { LearningMode } from '@/lib/types';
+import { AdaptiveContentViewer } from '@/components/learn/AdaptiveContentViewer';
 import { ChevronLeft, BookOpen, Volume2, Zap, Settings, Play, Pause, Square } from 'lucide-react';
 
 const LESSON = {
@@ -246,33 +247,19 @@ export default function LearnPage() {
                 />
               </div>
             ) : (
-              /* Dyslexia / Standard — full text with TTS word highlight */
-              <div
-                className={`glass-card p-8 content-area min-h-80 ${dominantMode === 'dyslexia' ? 'dyslexia-mode' : ''}`}
-                style={dominantMode === 'dyslexia' ? {
-                  fontFamily: 'OpenDyslexic, Lexend, sans-serif',
-                  letterSpacing: '0.06em',
-                  wordSpacing: '0.2em',
-                  lineHeight: 2.1,
-                  backgroundColor: '#fffbf0',
-                  color: '#2d2d2d',
-                } : {
-                  lineHeight: cfg.lineHeight,
-                  fontSize: cfg.fontSize,
-                  color: '#c0c0e0',
-                }}
-              >
-                {tts.isPlaying || tts.activeWordIndex >= 0 ? (
-                  <p style={{ lineHeight: 'inherit', fontSize: 'inherit' }}>
-                    <TTSWordHighlight
-                      text={LESSON.rawText}
-                      activeWordIndex={tts.activeWordIndex}
-                    />
-                  </p>
-                ) : (
-                  <div dangerouslySetInnerHTML={{ __html: transformation.transformed }} />
-                )}
-              </div>
+              /* Dyslexia / Standard — using the modular viewer with interactive word support */
+              <AdaptiveContentViewer
+                transformation={transformation}
+                mode={dominantMode}
+                fontSize={cfg.fontSize}
+                lineHeight={cfg.lineHeight}
+                wordSpacing={dominantMode === 'dyslexia' ? 0.2 : 0.05}
+                backgroundColor={dominantMode === 'dyslexia' ? '#fffbf0' : '#0f172a'}
+                dyslexiaFontEnabled={dominantMode === 'dyslexia'}
+                ttsActiveWordIndex={tts.activeWordIndex}
+                ttsIsPlaying={tts.isPlaying}
+                rawText={LESSON.rawText}
+              />
             )}
 
             {/* Quick action bar */}

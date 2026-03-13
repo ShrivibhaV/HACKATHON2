@@ -319,6 +319,20 @@ export function transformTextForLearner(
   const actionItems = extractActionItems(processedText);
   const quiz = generateQuizQuestions(processedText);
 
+  // ── Step 3: Phonetic Breakdown (for Sound Ball Simulator) ──
+  // Extract complex words from the text to provide syllable breakdowns
+  const phoneticBreakdown: TextTransformationResult['phoneticBreakdown'] = [];
+  const words = processedText.match(/\b[A-Za-z]{6,}\b/g) || [];
+  const uniqueWords = Array.from(new Set(words.map(w => w.toLowerCase())));
+  
+  for (const word of uniqueWords) {
+    // Basic syllable splitter (vowel-based chunks)
+    const syllables = word.match(/[^aeiouy]*[aeiouy]+(?:[^aeiouy](?![aeiouy]))*/gi) || [word];
+    if (syllables.length > 1) {
+      phoneticBreakdown.push({ word, syllables });
+    }
+  }
+
   return {
     original: text,
     transformed: adapted,
@@ -329,5 +343,6 @@ export function transformTextForLearner(
     readingTimeMinutes,
     wordCount,
     quiz,
+    phoneticBreakdown,
   };
 }

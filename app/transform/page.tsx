@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useProfile } from '@/lib/profile-context';
 import { transformTextForLearner } from '@/lib/text-transformers';
 import { SplitScreenView } from '@/components/transform/SplitScreenView';
+import { VisualMap } from '@/components/transform/VisualMap';
 import { FocusNudge } from '@/components/learn/FocusNudge';
 import { LearningMode, TextTransformationResult } from '@/lib/types';
 import { AgeGroup, getAgeConfig } from '@/lib/age-config';
@@ -101,14 +102,16 @@ export default function TransformPage() {
       {/* Focus nudge at 45 seconds — perfect for demo */}
       {result && (
         <FocusNudge
-          timeoutMinutes={0.75}
+          intervalMinutes={30}
+          periodic={true}
           resetTrigger={nudgeResetTrigger}
           onSimplify={() => {
-            // Re-transform at a simpler age level
             const simplerAge: AgeGroup = ageGroup === 'adult' ? 'teen' : ageGroup === 'teen' ? 'preteen' : 'child';
             const simplified = transformTextForLearner(inputText, effectiveMode, simplerAge);
             setResult(simplified);
           }}
+          onBreak={() => {}}
+          onReady={() => {}}
         />
       )}
 
@@ -283,7 +286,7 @@ export default function TransformPage() {
               </p>
             </div>
 
-            {/* Split screen */}
+            {/* Split screen comparison */}
             <div className="glass-card p-6">
               <SplitScreenView
                 original={inputText}
@@ -292,6 +295,15 @@ export default function TransformPage() {
                 ageGroup={ageGroup}
               />
             </div>
+
+            {/* ── Visual Concept Map (Moved Up) ── */}
+            {result.keyTerms.length > 0 && (
+              <VisualMap
+                title={inputText.trim().split('.')[0].substring(0, 40) || 'Concept Map'}
+                keyTerms={result.keyTerms}
+                rawText={result.transformed.replace(/<[^>]+>/g, '')}
+              />
+            )}
 
             {/* Action buttons */}
             <div className="flex gap-3 justify-center flex-wrap">
