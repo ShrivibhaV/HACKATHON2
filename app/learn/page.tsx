@@ -1,0 +1,389 @@
+'use client';
+
+import React, { useState, useCallback } from 'react';
+import Link from 'next/link';
+import { useProfile } from '@/lib/profile-context';
+import { transformTextForLearner } from '@/lib/text-transformers';
+import { ADHDFocusRuler, ADHDChunkFocus } from '@/components/learn/ADHDFocusRuler';
+import { FocusNudge } from '@/components/learn/FocusNudge';
+import { ModeSwitcher } from '@/components/learn/ModeSwitcher';
+import { ContrastOverlay } from '@/components/learn/ContrastOverlay';
+import { useTTS, TTSWordHighlight } from '@/hooks/useTTS';
+import { getAgeConfig, AgeGroup } from '@/lib/age-config';
+import { LearningMode } from '@/lib/types';
+import { ChevronLeft, BookOpen, Volume2, Zap, Settings, Play, Pause, Square, Eye, EyeOff } from 'lucide-react';
+
+const LESSON = {
+  title: 'Photosynthesis: How Plants Make Food',
+  rawText: `Photosynthesis is the process by which plants convert light energy into chemical energy stored in glucose. This process occurs primarily in the leaves of plants, specifically in structures called chloroplasts that contain the green pigment chlorophyll. During the light-dependent reactions, chlorophyll absorbs photons from sunlight and transfers their energy to electrons. These high-energy electrons are used to generate adenosine triphosphate (ATP) and nicotinamide adenine dinucleotide phosphate (NADPH), which are energy carriers. Subsequently, during the light-independent reactions, also known as the Calvin cycle, these energy carriers are utilized to convert carbon dioxide into glucose through a series of enzymatic reactions. This process is essential for life on Earth because it converts light energy into chemical energy that plants use for growth, and it also produces the oxygen that most organisms need to breathe.`,
+};
+
+const MODE_CONFIG = {
+  dyslexia: { label: 'Dyslexia Mode', emoji: '📖', gradient: 'linear-gradient(135deg, #936a22ff, #e040fb)', color: '#a08c68ff' },
+  adhd: { label: 'ADHD Mode', emoji: '⚡', gradient: 'linear-gradient(135deg, #7c5bf9, #e040fb)', color: '#7c5bf9' },
+  standard: { label: 'Standard Mode', emoji: '🧠', gradient: 'linear-gradient(135deg, #00d4ff, #7c5bf9)', color: '#00d4ff' },
+  mixed: { label: 'Mixed Mode', emoji: '🌀', gradient: 'linear-gradient(135deg, #e040fb, #00d4ff)', color: '#e040fb' },
+};
+
+export default function LearnPage() {
+  const { profile } = useProfile();
+  const [showSidebar, setShowSidebar] = useState(true);
+  const [focusRulerOn, setFocusRulerOn] = useState(false);
+  const [distractionFree, setDistractionFree] = useState(false);
+  const [activeChunk, setActiveChunk] = useState(0);
+  const [nudgeReset, setNudgeReset] = useState(0);
+  const [simplifyOverride, setSimplifyOverride] = useState(false);
+  const [showBreakBanner, setShowBreakBanner] = useState(false);
+  const tts = useTTS();
+
+  const ageGroup: AgeGroup = profile?.ageGroup ?? 'teen';
+  const cfg = getAgeConfig(ageGroup);
+
+  // Module B: Use preferredMode from profile
+  const dominantMode: LearningMode = profile?.preferredMode || 'standard';
+  
+  // Custom colors for contrast and requested changes
+  const textContrastClass = dominantMode === 'dyslexia' ? 'text-[#2d2d2d]' : 'text-[#f0f0ff]';
+  const breadcrumbActiveColor = dominantMode === 'dyslexia' ? '#a78bfa' : '#f0f0ff';
+  const modeInfo = MODE_CONFIG[dominantMode] ?? MODE_CONFIG.standard;
+
+  // Pre-transform lesson content — uses child-level simplification if Simplify was clicked
+  const transformation = React.useMemo(
+    () => transformTextForLearner(LESSON.rawText, simplifyOverride ? 'simplified' : dominantMode, simplifyOverride ? 'child' : ageGroup),
+    [dominantMode, ageGroup, simplifyOverride]
+  );
+
+  const handleChunkChange = useCallback((idx: number) => {
+    setActiveChunk(idx);
+    setNudgeReset((n) => n + 1);
+    tts.stop();
+  }, [tts]);
+
+  const handleSimplify = useCallback(() => {
+    // FocusNudge "Simplify" — switch to simpler vocabulary and larger chunks
+    setSimplifyOverride(true);
+    setNudgeReset((n) => n + 1);
+  }, []);
+
+  const handleBreak = useCallback(() => {
+    // FocusNudge "Break" — show a banner and let the timer restart
+    setShowBreakBanner(true);
+    setTimeout(() => setShowBreakBanner(false), 10000); // hide after 10s
+    setNudgeReset((n) => n + 1);
+  }, []);
+
+  const handleReady = useCallback(() => {
+    // FocusNudge "Ready!" — dismiss, do nothing else
+    setNudgeReset((n) => n + 1);
+  }, []);
+
+  if (!profile) {
+    return (
+      <main className="min-h-screen flex items-center justify-center px-4">
+        <div className="glass-card p-10 text-center max-w-md w-full animate-scale-in">
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-5"
+            style={{ background: 'linear-gradient(135deg, #7c5bf9, #00d4ff)' }}>📚</div>
+          <h2 className="text-2xl font-bold text-[#f0f0ff] mb-3">Set Up Your Profile First</h2>
+          <p className="text-[#8888b0] mb-6 leading-relaxed">
+            Complete a quick onboarding so we can adapt this lesson to YOUR brain.
+          </p>
+          <Link href="/onboarding" className="glow-btn w-full justify-center">
+            Start Onboarding →
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <main className="min-h-screen transition-all duration-400 mode-transition">
+
+      {/* ── Module B: Contrast Overlay (Dyslexia) ── */}
+      <ContrastOverlay />
+
+      {/* ── Module B: ADHD Focus Ruler ── */}
+      <ADHDFocusRuler enabled={focusRulerOn} />
+
+      {/* ── Module C: Focus Nudge (every 30 minutes, periodic) ── */}
+      <FocusNudge
+        intervalMinutes={30}
+        periodic={true}
+        resetTrigger={nudgeReset}
+        onSimplify={handleSimplify}
+        onBreak={handleBreak}
+        onReady={handleReady}
+      />
+
+      {/* Break banner */}
+      {showBreakBanner && (
+        <div
+          className="fixed top-20 left-1/2 -translate-x-1/2 z-50 animate-fade-in-up px-6 py-4 rounded-2xl text-center"
+          style={{
+            background: 'linear-gradient(135deg, rgba(124,91,249,0.25), rgba(0,212,255,0.15))',
+            border: '1px solid rgba(124,91,249,0.4)',
+            backdropFilter: 'blur(16px)',
+            boxShadow: '0 10px 40px rgba(124,91,249,0.3)',
+          }}
+        >
+          <p className="text-2xl mb-1">☕</p>
+          <p className="font-bold text-[#f0f0ff]">Enjoy your break!</p>
+          <p className="text-xs text-[#8888b0] mt-1">Come back when you're ready. We'll be here. 🧠</p>
+        </div>
+      )}
+
+      {/* Simplify mode banner */}
+      {simplifyOverride && (
+        <div
+          className="fixed top-20 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-4 py-2.5 rounded-full"
+          style={{
+            background: 'linear-gradient(135deg, #7c5bf9, #00d4ff)',
+            boxShadow: '0 6px 20px rgba(124,91,249,0.4)',
+          }}
+        >
+          <span className="text-white text-sm font-semibold">✨ Simplified Mode is ON</span>
+          <button
+            onClick={() => setSimplifyOverride(false)}
+            className="text-white/70 hover:text-white text-xs underline"
+          >
+            Reset
+          </button>
+        </div>
+      )}
+
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        {/* Breadcrumb */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-2">
+            <Link href="/" className="hover:text-[#a78bfa] flex items-center gap-1 text-sm transition-colors" style={{ color: 'var(--text-secondary)' }}>
+              <ChevronLeft className="w-4 h-4" /> Home
+            </Link>
+            <span className="text-[#555580]">/</span>
+            <span className="text-sm font-bold transition-colors" style={{ color: 'var(--text-primary)' }}>Learn</span>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <ModeSwitcher />
+
+            {dominantMode === 'adhd' && (
+              <button
+                onClick={() => setDistractionFree(!distractionFree)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                style={distractionFree
+                  ? { background: 'linear-gradient(135deg, #e040fb, #7c5bf9)', color: 'white' }
+                  : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#8888b0' }
+                }
+              >
+                {distractionFree ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                {distractionFree ? 'Focus Active' : 'Distraction-Free'}
+              </button>
+            )}
+
+            <button onClick={() => setShowSidebar(!showSidebar)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-[#8888b0] transition-all"
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <Settings className="w-3.5 h-3.5" /> {showSidebar ? 'Hide Tools' : 'Show Tools'}
+            </button>
+          </div>
+        </div>
+
+        {/* Lesson header */}
+        <div className="glass-card p-5 mb-5 animate-fade-in-up">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
+                style={{ background: modeInfo.gradient }}>
+                {modeInfo.emoji}
+              </div>
+              <div>
+                <h1 className="text-lg md:text-xl font-bold transition-colors" style={{ color: 'var(--text-primary)' }}>{LESSON.title}</h1>
+                <div className="flex items-center gap-2 mt-1 flex-wrap">
+                  <span className="mode-chip text-white text-xs" style={{ background: modeInfo.gradient }}>
+                    {modeInfo.emoji} {modeInfo.label}
+                  </span>
+                  <span className="reading-time-badge" style={{ color: 'var(--text-primary)' }}>⏱ {transformation.readingTimeMinutes} min</span>
+                  <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{cfg.emoji} {cfg.label}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* TTS Controls */}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {!tts.isPlaying ? (
+                <button onClick={() => tts.play(transformation.transformed)}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all hover:opacity-90"
+                  style={{ background: 'linear-gradient(135deg, #7c5bf9, #00d4ff)', color: 'white' }}>
+                  <Play className="w-3 h-3" /> Listen
+                </button>
+              ) : (
+                <>
+                  <button onClick={tts.pause}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold"
+                    style={{ background: 'rgba(124,91,249,0.12)', color: '#a78bfa', border: '1px solid rgba(124,91,249,0.25)' }}>
+                    <Pause className="w-3 h-3" /> Pause
+                  </button>
+                  <button onClick={tts.stop}
+                    className="p-2 rounded-lg text-xs"
+                    style={{ background: 'rgba(239,68,68,0.1)', color: '#f87171', border: '1px solid rgba(239,68,68,0.2)' }}>
+                    <Square className="w-3 h-3" />
+                  </button>
+                </>
+              )}
+              <Volume2 className="w-4 h-4 text-[#555580]" />
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-5">
+          {/* ── Main content ── */}
+          <div className="lg:col-span-3 animate-fade-in-up delay-100">
+
+            {/* ADHD Mode — chunk-focused navigation */}
+            {dominantMode === 'adhd' ? (
+              <div className="glass-card p-6">
+                <div className="flex items-center gap-2 mb-5">
+                  <span className="font-bold" style={{ color: 'var(--text-primary)' }}>⚡ Focus Mode</span>
+                  <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>— one chunk at a time, others dimmed</span>
+                  <button
+                    onClick={() => setFocusRulerOn(!focusRulerOn)}
+                    className="ml-auto px-3 py-1 rounded-lg text-xs font-semibold transition-all"
+                    style={focusRulerOn
+                      ? { background: 'linear-gradient(135deg, #7c5bf9, #00d4ff)', color: 'white' }
+                      : { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#8888b0' }
+                    }
+                  >
+                    {focusRulerOn ? '✓ Ruler ON' : '📏 Focus Ruler'}
+                  </button>
+                  <button
+                    onClick={() => setDistractionFree(!distractionFree)}
+                    className="px-3 py-1 rounded-lg text-xs font-semibold transition-all"
+                    style={distractionFree
+                      ? { background: 'linear-gradient(135deg, #e040fb, #7c5bf9)', color: 'white' }
+                      : { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#8888b0' }
+                    }
+                  >
+                    {distractionFree ? '✓ Focus' : '🔕 Distraction-Free'}
+                  </button>
+                </div>
+                <ADHDChunkFocus
+                  chunks={transformation.chunks}
+                  onChunkChange={handleChunkChange}
+                  ageConfig={cfg}
+                />
+              </div>
+            ) : (
+              /* Dyslexia / Standard — full text with TTS word highlight */
+              <div
+                className={`glass-card p-8 content-area min-h-80 ${dominantMode === 'dyslexia' ? 'dyslexia-mode' : ''}`}
+                style={dominantMode === 'dyslexia' ? {
+                  fontFamily: 'OpenDyslexic, Lexend, sans-serif',
+                  letterSpacing: '0.06em',
+                  wordSpacing: '0.2em',
+                  lineHeight: 2.1,
+                  backgroundColor: '#fffbf0',
+                  color: 'var(--text-primary)',
+                } : {
+                  lineHeight: cfg.lineHeight,
+                  fontSize: cfg.fontSize,
+                  color: 'var(--text-primary)',
+                }}
+              >
+                {tts.isPlaying || tts.activeWordIndex >= 0 ? (
+                  <p style={{ lineHeight: 'inherit', fontSize: 'inherit' }}>
+                    <TTSWordHighlight
+                      text={LESSON.rawText}
+                      activeWordIndex={tts.activeWordIndex}
+                    />
+                  </p>
+                ) : (
+                  <div dangerouslySetInnerHTML={{ __html: transformation.transformed }} />
+                )}
+              </div>
+            )}
+
+            {/* Quick action bar */}
+            <div className="flex gap-2 mt-3 flex-wrap">
+              {dominantMode === 'dyslexia' && (
+                <>
+                  <button onClick={() => setFocusRulerOn(!focusRulerOn)}
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+                    style={focusRulerOn
+                      ? { background: 'linear-gradient(135deg, #f59e0b, #e040fb)', color: 'white' }
+                      : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#8888b0' }
+                    }
+                  >
+                    📏 {focusRulerOn ? 'Ruler ON' : 'Reading Ruler'}
+                  </button>
+                </>
+              )}
+              <Link href="/transform" className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+                style={{ background: 'rgba(124,91,249,0.1)', border: '1px solid rgba(124,91,249,0.2)', color: '#a78bfa' }}>
+                ✨ Transform Your Own Text →
+              </Link>
+            </div>
+          </div>
+
+          {/* ── Sidebar ── */}
+          {showSidebar && (
+            <div className="lg:col-span-1 space-y-4 animate-fade-in-up delay-200 sticky top-24 h-fit">
+
+              {/* Key terms */}
+              {transformation.keyTerms.length > 0 && (
+                <div className="glass-card p-4 space-y-3">
+                  <h3 className="font-bold text-sm flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+                    <BookOpen className="w-4 h-4 text-[#a78bfa]" /> Key Terms
+                  </h3>
+                  <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                    {transformation.keyTerms.map((term, i) => (
+                      <div key={i} className="p-3 rounded-lg"
+                        style={{ background: 'rgba(124,91,249,0.07)', border: '1px solid rgba(124,91,249,0.12)' }}>
+                        <p className="text-xs font-bold text-[#a78bfa] mb-1">{term.term}</p>
+                        <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{term.explanation}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* ADHD sidebar extras */}
+              {dominantMode === 'adhd' && (
+                <div className="glass-card p-4 space-y-4">
+                  <h3 className="font-bold text-sm flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+                    <Zap className="w-4 h-4 text-[#7c5bf9]" /> Focus Boost
+                  </h3>
+                  <div>
+                    <p className="text-xs mb-1" style={{ color: 'var(--text-secondary)' }}>🔥 TODAY'S STREAK</p>
+                    <p className="text-2xl font-extrabold" style={{ color: '#f59e0b' }}>5 days</p>
+                  </div>
+                  <div>
+                    <p className="text-xs mb-2" style={{ color: 'var(--text-secondary)' }}>LESSON PROGRESS</p>
+                    <div className="h-2 rounded-full" style={{ background: 'rgba(255,255,255,0.08)' }}>
+                      <div className="h-full rounded-full transition-all duration-700"
+                        style={{
+                          width: `${Math.round(((activeChunk + 1) / Math.max(transformation.chunks.length, 1)) * 100)}%`,
+                          background: 'linear-gradient(90deg, #7c5bf9, #00d4ff)'
+                        }} />
+                    </div>
+                    <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
+                      Chunk {activeChunk + 1} of {transformation.chunks.length}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Profile summary */}
+              <div className="glass-card p-4 space-y-2">
+                <p className="text-xs font-bold" style={{ color: 'var(--text-secondary)' }}>YOUR PROFILE</p>
+                <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{profile.name}</p>
+                <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{cfg.emoji} {cfg.label}</p>
+                <Link href="/onboarding"
+                  className="text-xs text-[#7c5bf9] hover:text-[#a78bfa] transition-colors">
+                  Change profile →
+                </Link>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </main>
+  );
+}
