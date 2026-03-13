@@ -95,7 +95,13 @@ export function chunkByAge(text: string, ageGroup: AgeGroup): string[] {
   return chunks.filter(Boolean);
 }
 
-// ─── Vocabulary simplification (age-aware) ───────────────────
+// ─── General Transitions (Should not be search links) ────────
+const GENERAL_TRANSITIONS = new Set([
+  'subsequently', 'approximately', 'facilitate', 'utilize', 'comprise', 
+  'consequently', 'furthermore', 'nevertheless', 'accordingly', 'moreover',
+  'similarly', 'conversely', 'hence', 'thus', 'therefore'
+]);
+
 export function simplifyVocabulary(
   text: string,
   ageGroup: AgeGroup = 'teen'
@@ -121,9 +127,18 @@ export function simplifyVocabulary(
     resultHtml = processTextNodes(resultHtml, (plain) => {
       if (regex.test(plain)) {
         replacements.push({ original, replacement });
+        
+        // Only wrap in a search link if it's NOT a general transition
+        if (GENERAL_TRANSITIONS.has(original.toLowerCase())) {
+          return plain.replace(
+            regex,
+            `<span class="simplified-word" title="Original: ${original}">${replacement}</span>`
+          );
+        }
+
         return plain.replace(
           regex,
-          `<span class="simplified-word" title="Original: ${original}">${replacement}</span>`
+          `<a href="https://www.google.com/search?q=${encodeURIComponent(replacement)}" target="_blank" rel="noopener noreferrer" class="simplified-word-link"><span class="simplified-word" title="Original: ${original}">${replacement}</span></a>`
         );
       }
       return plain;
@@ -148,7 +163,7 @@ export function highlightKeywords(html: string): string {
     let res = text;
     for (const term of SCIENCE_TERMS) {
       const regex = new RegExp(`\\b(${term})\\b`, 'gi');
-      res = res.replace(regex, '<mark class="keyword">$1</mark>');
+      res = res.replace(regex, '<a href="https://www.google.com/search?q=$1" target="_blank" rel="noopener noreferrer" class="keyword-link"><mark class="keyword">$1</mark></a>');
     }
     return res;
   });

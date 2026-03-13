@@ -593,27 +593,47 @@ html {
 
 /* Keyword highlighting */
 mark.keyword {
-  background: linear-gradient(135deg, rgba(124,91,249,0.25), rgba(0,212,255,0.15));
-  color: #e0d0ff;
+  background: rgba(124, 91, 249, 0.18);
+  color: #c7b8ff; /* Slightly darker than e0d0ff for better definition in dark mode */
   border-radius: 4px;
-  padding: 0 3px;
-  border-bottom: 2px solid rgba(124,91,249,0.5);
+  padding: 0 4px;
+  border-bottom: 2px solid rgba(124, 91, 249, 0.6);
   font-weight: 600;
   cursor: help;
+  transition: all 0.2s ease;
 }
+
+mark.keyword:hover {
+  background: rgba(124, 91, 249, 0.3);
+  color: #ffffff;
+}
+
+.keyword-link, .simplified-word-link {
+  text-decoration: none !important;
+  color: inherit !important;
+  cursor: pointer;
+}
+
 .dyslexia-mode mark.keyword {
-  background: rgba(245,158,11,0.2);
-  color: #7c4500;
-  border-bottom-color: #f59e0b;
+  background: #fef3c7 !important; /* Lighter yellow background */
+  color: #92400e !important; /* Dark amber text for maximum contrast on light yellow */
+  border-bottom: 2px solid #b45309 !important;
+  font-weight: 800; /* Extra bold for visibility */
 }
 
 /* Simplified word tooltip */
 span.simplified-word {
-  color: #a78bfa;
+  color: #9f7aea; /* Solid purple for visibility */
+  font-weight: 500;
   font-style: italic;
   cursor: help;
-  border-bottom: 1px dashed rgba(124,91,249,0.5);
+  border-bottom: 1px dashed rgba(124, 91, 249, 0.6);
   position: relative;
+}
+
+.dyslexia-mode span.simplified-word {
+  color: #5b21b6 !important; /* Deeper purple for light background */
+  border-bottom-color: #7c3aed !important;
 }
 span.simplified-word:hover::after {
   content: attr(title);

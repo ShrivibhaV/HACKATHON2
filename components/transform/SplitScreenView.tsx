@@ -172,7 +172,7 @@ export function SplitScreenView({ original, result, mode, ageGroup = 'teen' }: S
               </span>
             </div>
             <div
-              className="p-5 rounded-xl overflow-y-auto min-h-80 max-h-[480px] text-sm content-area"
+              className={`p-5 rounded-xl overflow-y-auto min-h-80 max-h-[480px] text-sm content-area ${mode === 'dyslexia' ? 'dyslexia-mode' : ''}`}
               style={{
                 background: mode === 'dyslexia' ? '#fffbf0' : 'rgba(124,91,249,0.06)',
                 border: `1px solid ${modeInfo.color}33`,
@@ -216,7 +216,7 @@ export function SplitScreenView({ original, result, mode, ageGroup = 'teen' }: S
       {/* ── ADAPTED ONLY ── */}
       {viewMode === 'adapted' && (
         <div
-          className="p-6 rounded-xl text-sm content-area"
+          className={`p-6 rounded-xl text-sm content-area ${mode === 'dyslexia' ? 'dyslexia-mode' : ''}`}
           style={{
             background: mode === 'dyslexia' ? '#fffbf0' : 'rgba(124,91,249,0.06)',
             border: `1px solid ${modeInfo.color}33`,
