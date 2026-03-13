@@ -13,7 +13,7 @@ interface SoundBallSimulatorProps {
 // Synthesizes a clean, playful "boop" sound at different pitches
 const playSyllableSound = (index: number, total: number) => {
   if (typeof window === 'undefined') return;
-  
+
   const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();
@@ -51,12 +51,12 @@ export function SoundBallSimulator({ word, syllables }: SoundBallSimulatorProps)
   const playSequence = async () => {
     if (isAutoPlaying) return;
     setIsAutoPlaying(true);
-    
+
     for (let i = 0; i < syllables.length; i++) {
       handleBallClick(i);
       await new Promise(r => setTimeout(r, 600));
     }
-    
+
     setIsAutoPlaying(false);
   };
 
@@ -72,8 +72,8 @@ export function SoundBallSimulator({ word, syllables }: SoundBallSimulatorProps)
             <p className="text-xs text-slate-500 italic">Phonetic Sound-Balls: Tap to hear syllables</p>
           </div>
         </div>
-        
-        <button 
+
+        <button
           onClick={playSequence}
           disabled={isAutoPlaying}
           className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#7c5bf9] text-white text-sm font-bold shadow-lg shadow-[#7c5bf9]/25 hover:scale-105 transition-transform disabled:opacity-50"
@@ -98,24 +98,24 @@ export function SoundBallSimulator({ word, syllables }: SoundBallSimulatorProps)
                 className={`
                   w-24 h-24 rounded-full flex items-center justify-center text-xl font-black transition-all
                   shadow-xl select-none outline-none
-                  ${activeIdx === i 
-                    ? 'scale-110 shadow-[#7c5bf9]/40 border-4 border-[#7c5bf9]' 
+                  ${activeIdx === i
+                    ? 'scale-110 shadow-[#7c5bf9]/40 border-4 border-[#7c5bf9]'
                     : 'hover:scale-105 border-4 border-transparent hover:border-slate-200'
                   }
                 `}
                 style={{
-                  background: activeIdx === i 
-                    ? 'linear-gradient(135deg, #7c5bf9, #9d7cff)' 
+                  background: activeIdx === i
+                    ? 'linear-gradient(135deg, #7c5bf9, #9d7cff)'
                     : `hsla(${240 + i * (60 / syllables.length)}, 70%, 95%, 1)`,
                   color: activeIdx === i ? 'white' : '#4338ca',
-                  boxShadow: activeIdx === i 
-                    ? '0 20px 40px -10px rgba(124, 91, 249, 0.4)' 
+                  boxShadow: activeIdx === i
+                    ? '0 20px 40px -10px rgba(124, 91, 249, 0.4)'
                     : 'inset 0 -8px 16px rgba(0,0,0,0.05), 0 10px 20px rgba(0,0,0,0.03)'
                 }}
               >
                 {syllable}
               </button>
-              
+
               {/* Particle effect on click */}
               {activeIdx === i && (
                 <motion.div
@@ -129,9 +129,9 @@ export function SoundBallSimulator({ word, syllables }: SoundBallSimulatorProps)
                       key={deg}
                       className="absolute w-2 h-2 rounded-full bg-[#7c5bf9]"
                       initial={{ x: 0, y: 0 }}
-                      animate={{ 
-                        x: Math.cos(deg * Math.PI / 180) * 60, 
-                        y: Math.sin(deg * Math.PI / 180) * 60 
+                      animate={{
+                        x: Math.cos(deg * Math.PI / 180) * 60,
+                        y: Math.sin(deg * Math.PI / 180) * 60
                       }}
                     />
                   ))}
