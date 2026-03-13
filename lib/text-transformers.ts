@@ -1,35 +1,85 @@
 import { TextTransformationResult, LearningMode } from './types';
 import { AgeGroup, VOCAB_MAPS, getAgeConfig } from './age-config';
 
-// ─── Bionic Reading ──────────────────────────────────────────
-export function applyBionicReading(text: string): string {
-  return text
-    .split(/(\s+|[.!?,;:—–-])/)
-    .map((word) => {
-      if (word.match(/^\s+$/) || word.match(/^[.!?,;:—–-]$/)) return word;
-      if (word.length <= 1) return word;
-      const boldLength = Math.ceil(word.length * 0.4);
-      return `<b>${word.substring(0, boldLength)}</b>${word.substring(boldLength)}`;
-    })
+// ─── HTML Helper ─────────────────────────────────────────────
+// Processes text while ignoring HTML tags
+function processTextNodes(html: string, processor: (text: string) => string): string {
+  // Splits by HTML tags, keeping the tags in the array
+  const parts = html.split(/(<[^>]+>)/g);
+  return parts
+    .map((part) => (part.startsWith('<') ? part : processor(part)))
     .join('');
 }
 
+// ─── Bionic Reading ──────────────────────────────────────────
+export function applyBionicReading(html: string): string {
+  return processTextNodes(html, (text) => {
+    return text
+      .split(/(\s+|[.!?,;:—–-])/)
+      .map((word) => {
+        if (word.match(/^\s+$/) || word.match(/^[.!?,;:—–-]$/)) return word;
+        if (word.length <= 1) return word;
+        const boldLength = Math.ceil(word.length * 0.4);
+        return `<b>${word.substring(0, boldLength)}</b>${word.substring(boldLength)}`;
+      })
+      .join('');
+  });
+}
+
 // ─── Syllable breaks ─────────────────────────────────────────
-export function applySyllableBreaks(text: string): string {
-  return text
-    .split(/\b/)
-    .map((word) => {
-      if (word.length < 4) return word;
-      return word
-        .replace(/([aeiouy]{1,2})([bcdfghjklmnpqrstvwxz]{2,})([aeiouy]{1,2})/gi, '$1-$2$3')
-        .replace(/([aeiouy]{1,2})([bcdfghjklmnpqrstvwxz])([aeiouy]{1,2})/gi, '$1-$2$3');
-    })
-    .join('');
+export function applySyllableBreaks(html: string): string {
+  return processTextNodes(html, (text) => {
+    return text
+      .split(/\b/)
+      .map((word) => {
+        if (word.length < 4) return word;
+        return word
+          .replace(/([aeiouy]{1,2})([bcdfghjklmnpqrstvwxz]{2,})([aeiouy]{1,2})/gi, '$1-$2$3')
+          .replace(/([aeiouy]{1,2})([bcdfghjklmnpqrstvwxz])([aeiouy]{1,2})/gi, '$1-$2$3');
+      })
+      .join('');
+  });
 }
 
 // ─── Sentence splitter ───────────────────────────────────────
 function splitSentences(text: string): string[] {
-  return text.match(/[^.!?]+[.!?]+/g)?.map((s) => s.trim()) ?? [text.trim()];
+  // Robust sentence splitter that ignores periods inside HTML attributes (like title="e.g.")
+  const sentences = text.match(/[^.!?]+[.!?]+(?=\s+[A-Z\d]|["']?\s*$|$)/g);
+  return sentences?.map((s) => s.trim()) ?? [text.trim()];
+}
+
+// ─── Short Notes Generator (for ADHD "point-wise" request) ────
+function generateShortNotes(text: string, ageGroup: AgeGroup): string {
+  const sentences = splitSentences(text);
+  const cfg = getAgeConfig(ageGroup);
+  
+  // Pivot to bullet points
+  const importantKeywords = Array.from(SCIENCE_TERMS);
+  
+  // Filter for sentences that have keywords or are the first in a paragraph
+  let notes = sentences.filter((s, i) => {
+    const hasKeyword = importantKeywords.some(k => s.toLowerCase().includes(k.toLowerCase()));
+    return i === 0 || hasKeyword || s.length < 100;
+  });
+
+  // Limit based on age
+  const limit = ageGroup === 'child' ? 3 : ageGroup === 'preteen' ? 5 : 8;
+  notes = notes.slice(0, limit);
+
+  return `
+    <div class="short-notes">
+      <h4 class="text-sm font-bold text-[#a78bfa] mb-3">📍 Key Points (Minimized for Focus):</h4>
+      <ul class="space-y-3">
+        ${notes.map(note => `
+          <li class="flex items-start gap-3">
+            <span class="text-[#7c5bf9] mt-1.5">•</span>
+            <span class="text-sm leading-relaxed">${note}</span>
+          </li>
+        `).join('')}
+      </ul>
+      <p class="text-[10px] text-[#555580] mt-4 italic">* Text reduced by ${Math.round((1 - notes.length/sentences.length) * 100)}% to help you focus.</p>
+    </div>
+  `;
 }
 
 // ─── Chunk by age config ─────────────────────────────────────
@@ -45,11 +95,6 @@ export function chunkByAge(text: string, ageGroup: AgeGroup): string[] {
   return chunks.filter(Boolean);
 }
 
-// Legacy ADHD chunk (kept for backwards compat)
-export function chunkTextForADHD(text: string, maxLength = 150): string[] {
-  return chunkByAge(text, 'teen');
-}
-
 // ─── Vocabulary simplification (age-aware) ───────────────────
 export function simplifyVocabulary(
   text: string,
@@ -59,9 +104,9 @@ export function simplifyVocabulary(
   const level = cfg.vocabLevel;
   const replacements: Array<{ original: string; replacement: string }> = [];
 
-  let simplified = text;
+  let resultHtml = text;
 
-  // Multi-word terms first (longest first to avoid partial matches)
+  // Multi-word terms first
   const sortedTerms = Object.keys(VOCAB_MAPS).sort((a, b) => b.length - a.length);
 
   for (const original of sortedTerms) {
@@ -71,16 +116,21 @@ export function simplifyVocabulary(
     if (!replacement) continue;
 
     const regex = new RegExp(`\\b${original.replace(/[-()]/g, '\\$&')}\\b`, 'gi');
-    if (regex.test(simplified)) {
-      simplified = simplified.replace(
-        regex,
-        `<span class="simplified-word" title="Original: ${original}">${replacement}</span>`
-      );
-      replacements.push({ original, replacement });
-    }
+    
+    // Process text nodes only to avoid replacing inside already created spans
+    resultHtml = processTextNodes(resultHtml, (plain) => {
+      if (regex.test(plain)) {
+        replacements.push({ original, replacement });
+        return plain.replace(
+          regex,
+          `<span class="simplified-word" title="Original: ${original}">${replacement}</span>`
+        );
+      }
+      return plain;
+    });
   }
 
-  return { simplified, replacements };
+  return { simplified: resultHtml, replacements };
 }
 
 // ─── Keyword highlighter ─────────────────────────────────────
@@ -93,13 +143,15 @@ const SCIENCE_TERMS = new Set([
   'DNA', 'RNA', 'protein', 'cell membrane', 'organelle',
 ]);
 
-export function highlightKeywords(text: string): string {
-  let result = text;
-  for (const term of SCIENCE_TERMS) {
-    const regex = new RegExp(`\\b(${term})\\b`, 'gi');
-    result = result.replace(regex, '<mark class="keyword">$1</mark>');
-  }
-  return result;
+export function highlightKeywords(html: string): string {
+  return processTextNodes(html, (text) => {
+    let res = text;
+    for (const term of SCIENCE_TERMS) {
+      const regex = new RegExp(`\\b(${term})\\b`, 'gi');
+      res = res.replace(regex, '<mark class="keyword">$1</mark>');
+    }
+    return res;
+  });
 }
 
 // ─── Action item detector ────────────────────────────────────
@@ -200,39 +252,46 @@ export function transformTextForLearner(
   ageGroup: AgeGroup = 'teen'
 ): TextTransformationResult {
   const cfg = getAgeConfig(ageGroup);
-  const wordCount = text.trim().split(/\s+/).length;
-  const readingTimeMinutes = estimateReadingTime(text, ageGroup);
+  
+  // ADHD: handled differently down in mode-specific transformation
+  const processedText = text; 
+  
+  const wordCount = processedText.trim().split(/\s+/).length;
+  const readingTimeMinutes = estimateReadingTime(processedText, ageGroup);
 
   let bionicReading = '';
-  let adapted = text;
+  let adapted = processedText;
   let chunks: string[] = [];
 
   // ── Step 1: Vocabulary simplification (all modes) ──
-  const { simplified } = simplifyVocabulary(text, ageGroup);
+  const { simplified } = simplifyVocabulary(processedText, ageGroup);
 
   // ── Step 2: Mode-specific transformation ──
   if (mode === 'dyslexia') {
-    bionicReading = applyBionicReading(simplified);
-    adapted = highlightKeywords(bionicReading);
-    chunks = chunkByAge(text, ageGroup);
+    // User feedback: "half bolded" (Bionic Reading) is confusing for some. 
+    // We'll prioritize the increased spacing and high contrast instead.
+    adapted = highlightKeywords(simplified);
+    chunks = chunkByAge(processedText, ageGroup);
 
   } else if (mode === 'adhd') {
-    chunks = chunkByAge(simplified, ageGroup);
-    adapted = chunks
-      .map((chunk, idx) => {
-        const emoji = cfg.useEmojiGuides ? `<span class="chunk-num">${idx + 1}️⃣</span> ` : `<span class="chunk-num">${idx + 1}.</span> `;
-        return `<div class="chunk chunk-${idx}">${emoji}${chunk}</div>`;
-      })
-      .join('');
+    // ADHD students need minimized, point-wise content
+    const { simplified: simplifiedAdhd } = simplifyVocabulary(processedText, ageGroup);
+    const highlighted = highlightKeywords(simplifiedAdhd);
+    
+    // Transform into Bullet Points / Short Notes
+    adapted = generateShortNotes(highlighted, ageGroup);
+    
+    // Chunks still exist but are now the bullet points
+    chunks = splitSentences(processedText).slice(0, 5); 
 
   } else if (mode === 'simplified' || mode === 'standard') {
     adapted = highlightKeywords(simplified);
-    chunks = chunkByAge(text, ageGroup);
+    chunks = chunkByAge(processedText, ageGroup);
   }
 
-  const keyTerms = extractKeyTerms(text, ageGroup);
-  const actionItems = extractActionItems(text);
-  const quiz = generateQuizQuestions(text);
+  const keyTerms = extractKeyTerms(processedText, ageGroup);
+  const actionItems = extractActionItems(processedText);
+  const quiz = generateQuizQuestions(processedText);
 
   return {
     original: text,

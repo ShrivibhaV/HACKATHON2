@@ -541,16 +541,28 @@ html {
 /* Applied to the reading content area when profile is dyslexia */
 .dyslexia-mode {
   font-family: 'OpenDyslexic', 'Lexend', sans-serif !important;
-  letter-spacing: 0.07em;
-  word-spacing: 0.25em;
-  line-height: 2.1;
+  letter-spacing: 0.15em !important;
+  word-spacing: 0.6em !important;
+  line-height: 2.5 !important;
   background-color: #fffbf0 !important;
-  color: #2d2d2d !important;
+  color: #1a1a1a !important; 
   border-radius: 12px;
-  padding: 2rem;
+  padding: 3rem !important;
 }
 
-/* ADHD distraction-free mode */
+/* ADHD chunks in transformed view */
+.chunk {
+  padding: 1.25rem 1.5rem;
+  border-radius: 12px;
+  margin-bottom: 1.25rem;
+  background: rgba(124, 91, 249, 0.04);
+  border: 1px solid rgba(124, 91, 249, 0.15);
+  border-left: 4px solid var(--violet);
+  line-height: 1.9;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  animation: fadeInUp 0.4s ease both;
+}
+
 .adhd-focus-mode .nav-glass {
   opacity: 0;
   pointer-events: none;
@@ -663,9 +675,3 @@ span.simplified-word:hover::after {
 .action-item.should { background: rgba(245,158,11,0.08); border-left: 3px solid #f59e0b; color: #fcd34d; }
 .action-item.step { background: rgba(0,212,255,0.08); border-left: 3px solid #00d4ff; color: #67e8f9; }
 .action-item.remember { background: rgba(124,91,249,0.08); border-left: 3px solid #7c5bf9; color: #a78bfa; }
-
-/* Bionic reading bold */
-.content-area b {
-  font-weight: 900;
-  color: inherit;
-}
