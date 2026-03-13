@@ -4,7 +4,6 @@ import React, { useState } from 'react';
 import { useProfile } from '@/lib/profile-context';
 import { transformTextForLearner } from '@/lib/text-transformers';
 import { SplitScreenView } from '@/components/transform/SplitScreenView';
-import { FocusNudge } from '@/components/learn/FocusNudge';
 import { LearningMode, TextTransformationResult } from '@/lib/types';
 import { AgeGroup, getAgeConfig } from '@/lib/age-config';
 import { Sparkles, Loader2, Copy, Download, ChevronDown, ChevronUp } from 'lucide-react';
@@ -44,7 +43,6 @@ export default function TransformPage() {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [showActionItems, setShowActionItems] = useState(true);
-  const [nudgeResetTrigger, setNudgeResetTrigger] = useState(0);
 
   // Auto-select mode from profile if available
   const effectiveMode: LearningMode = profile
@@ -73,7 +71,6 @@ export default function TransformPage() {
     try {
       const transformed = transformTextForLearner(inputText, effectiveMode, ageGroup);
       setResult(transformed);
-      setNudgeResetTrigger((t) => t + 1);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Transformation failed');
     } finally {
@@ -98,22 +95,7 @@ export default function TransformPage() {
 
   return (
     <main className="min-h-screen">
-      {/* Focus nudge at 45 seconds — perfect for demo */}
-      {result && (
-        <FocusNudge
-          intervalMinutes={0.75}
-          resetTrigger={nudgeResetTrigger}
-          onSimplify={() => {
-            // Re-transform at a simpler age level
-            const simplerAge: AgeGroup = ageGroup === 'adult' ? 'teen' : ageGroup === 'teen' ? 'preteen' : 'child';
-            const simplified = transformTextForLearner(inputText, effectiveMode, simplerAge);
-            setResult(simplified);
-          }}
-        />
-      )}
-
       <div className="max-w-7xl mx-auto px-4 py-10">
-
         {/* ── Header ── */}
         <div className="text-center mb-12">
           <div
@@ -169,7 +151,6 @@ export default function TransformPage() {
                 </div>
               </div>
             )}
-
             {/* Text input */}
             <div className="glass-card p-5 space-y-3">
               <div className="flex items-center justify-between">
