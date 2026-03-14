@@ -11,6 +11,7 @@ import { useTTS, TTSWordHighlight } from '@/hooks/useTTS';
 import { getAgeConfig, AgeGroup } from '@/lib/age-config';
 import { LearningMode } from '@/lib/types';
 import { AdaptiveContentViewer } from '@/components/learn/AdaptiveContentViewer';
+import { YoungLearnerContent } from '@/components/learn/YoungLearnerContent';
 import { ChevronLeft, BookOpen, Volume2, Zap, Settings, Play, Pause, Square } from 'lucide-react';
 
 const LESSON = {
@@ -147,8 +148,17 @@ export default function LearnPage() {
           {/* ── Main content ── */}
           <div className="lg:col-span-3 animate-fade-in-up delay-100">
 
-            {/* ADHD Mode — chunk-focused navigation */}
-            {dominantMode === 'adhd' ? (
+            {/* Young Learner Content */}
+            {ageGroup === 'child' ? (
+              <YoungLearnerContent 
+                mode={dominantMode} 
+                ageConfig={cfg} 
+                onPlaySpeech={(text) => {
+                  tts.stop();
+                  tts.play(text);
+                }} 
+              />
+            ) : dominantMode === 'adhd' ? (
               <div className="glass-card p-6">
                 <div className="flex items-center gap-2 mb-5">
                   <span className="font-bold text-[#f0f0ff]">⚡ Focus Mode</span>

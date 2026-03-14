@@ -3,7 +3,7 @@
 // Maps age groups to content rules used throughout the app
 // ============================================================
 
-export type AgeGroup = 'child' | 'preteen' | 'teen' | 'adult' | 'teacher';
+export type AgeGroup = 'child' | 'preteen' | 'teen' | 'adult';
 
 export interface AgeConfig {
   label: string;
@@ -91,23 +91,6 @@ export const AGE_CONFIGS: Record<AgeGroup, AgeConfig> = {
     breakDurationSeconds: 30,
     quizDifficulty: 'hard',
     encouragementStyle: 'neutral',
-  },
-  teacher: {
-    label: 'Teacher / Parent',
-    emoji: '👩‍🏫',
-    ageRange: 'Educator',
-    fontSize: 15,
-    lineHeight: 1.6,
-    letterSpacing: '0',
-    chunkSentences: 5,
-    maxSentenceWords: 999,
-    vocabLevel: 'academic',
-    useEmojiGuides: false,
-    useVisualAids: false,
-    focusTimerMinutes: 10,
-    breakDurationSeconds: 30,
-    quizDifficulty: 'hard',
-    encouragementStyle: 'professional',
   },
 };
 

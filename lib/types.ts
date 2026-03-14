@@ -1,6 +1,6 @@
 // User Profile Types
 export type LearningMode = 'standard' | 'dyslexia' | 'adhd' | 'mixed';
-export type AgeGroup = 'child' | 'preteen' | 'teen' | 'adult' | 'teacher';
+export type AgeGroup = 'child' | 'preteen' | 'teen' | 'adult';
 
 export interface WeightedProfile {
   standard: number; // 0-100
@@ -111,6 +111,7 @@ export interface TextTransformationResult {
     explanation: string;
   }>;
   actionItems: ActionItem[];
+  story?: string;
   readingTimeMinutes: number;
   wordCount: number;
   quiz: Array<{

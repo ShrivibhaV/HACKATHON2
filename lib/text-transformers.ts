@@ -1,4 +1,4 @@
-import { TextTransformationResult, LearningMode } from './types';
+import { TextTransformationResult, LearningMode, ActionItem } from './types';
 import { AgeGroup, VOCAB_MAPS, getAgeConfig } from './age-config';
 
 // ─── HTML Helper ─────────────────────────────────────────────
@@ -263,6 +263,30 @@ export function generateQuizQuestions(text: string) {
   ];
 }
 
+// ─── Story Mode Generator ────────────────────────────────────
+export function transformToStory(text: string, ageGroup: AgeGroup): string {
+  const sentences = splitSentences(text);
+  const topic = text.trim().split('.')[0].substring(0, 50).replace(/[^a-zA-Z0-9 ]/g, '');
+  
+  const intro = ageGroup === 'preteen' 
+    ? `Hey there! Imagine you're an explorer. Today, we're diving into the world of **${topic}**. <br/><br/>`
+    : `Let's look at **${topic}** from a different perspective. Think of it like a journey through a complex system. <br/><br/>`;
+
+  const storyContent = sentences.map((s, i) => {
+    if (i === 0) return `Once upon a time, there was this concept called ${s.toLowerCase()}`;
+    if (i % 3 === 0) return `Suddenly, we see how ${s.toLowerCase()}`;
+    return s;
+  }).join(' ');
+
+  const conclusion = `<br/><br/>And that's how the story of **${topic}** unfolds in the real world!`;
+
+  return `<div class="story-mode">
+    ${intro}
+    <div class="story-body">${storyContent}</div>
+    ${conclusion}
+  </div>`;
+}
+
 // ─── Reading time estimate ───────────────────────────────────
 function estimateReadingTime(text: string, ageGroup: AgeGroup): number {
   const wordCount = text.trim().split(/\s+/).length;
@@ -287,9 +311,18 @@ export function transformTextForLearner(
   let bionicReading = '';
   let adapted = processedText;
   let chunks: string[] = [];
+  let story: string | undefined = undefined;
 
   // ── Step 1: Vocabulary simplification (all modes) ──
   const { simplified } = simplifyVocabulary(processedText, ageGroup);
+
+  // Generate story if middle/high school
+  if (ageGroup === 'preteen' || ageGroup === 'teen') {
+    story = transformToStory(processedText, ageGroup);
+    // Apply simplification to story too
+    const { simplified: simplifiedStory } = simplifyVocabulary(story, ageGroup);
+    story = highlightKeywords(simplifiedStory);
+  }
 
   // ── Step 2: Mode-specific transformation ──
   if (mode === 'dyslexia') {
@@ -340,6 +373,7 @@ export function transformTextForLearner(
     chunks,
     keyTerms,
     actionItems,
+    story,
     readingTimeMinutes,
     wordCount,
     quiz,

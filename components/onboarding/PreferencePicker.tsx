@@ -53,7 +53,6 @@ const AGE_OPTIONS: { id: AgeGroup; emoji: string; label: string; range: string; 
   { id: 'preteen', emoji: '🧒', label: 'Middle School',  range: 'Ages 11–14', desc: 'Clear chunks, simple words, fun examples.' },
   { id: 'teen',    emoji: '🎒', label: 'High School',    range: 'Ages 15–18', desc: 'Focused mode, timed sessions, academic content.' },
   { id: 'adult',   emoji: '🎓', label: 'University / Adult', range: '18+ years', desc: 'Full features, analytical tools, detailed study aids.' },
-  { id: 'teacher', emoji: '👩‍🏫', label: 'Teacher / Parent', range: 'Educator', desc: 'Dashboard view, student insights, all features unlocked.' },
 ];
 
 function ProgressDots({ total, current }: { total: number; current: number }) {
@@ -113,7 +112,7 @@ export function PreferencePicker({ onComplete }: PreferencePickerProps) {
     else if (adhdWeight > dyslexiaWeight && adhdWeight > 30) preferredMode = 'adhd';
 
     return {
-      id: crypto.randomUUID(),
+      id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15),
       userId: '',
       name: name.trim() || 'Learner',
       ageGroup: ageGroup ?? 'teen',

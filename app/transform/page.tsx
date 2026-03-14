@@ -4,9 +4,10 @@ import React, { useState } from 'react';
 import { useProfile } from '@/lib/profile-context';
 import { transformTextForLearner } from '@/lib/text-transformers';
 import { SplitScreenView } from '@/components/transform/SplitScreenView';
+import { VisualMap } from '@/components/transform/VisualMap';
 import { LearningMode, TextTransformationResult } from '@/lib/types';
 import { AgeGroup, getAgeConfig } from '@/lib/age-config';
-import { Sparkles, Loader2, Copy, Download, ChevronDown, ChevronUp } from 'lucide-react';
+import { Sparkles, Loader2, Copy, Download, ChevronDown, ChevronUp, BookOpen, Brain, Lightbulb, GraduationCap } from 'lucide-react';
 
 /* ─── Sample texts ─────────────────────────────────────────── */
 const SAMPLES = {
@@ -43,6 +44,7 @@ export default function TransformPage() {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [showActionItems, setShowActionItems] = useState(true);
+  const [showStory, setShowStory] = useState(false);
 
   // Auto-select mode from profile if available
   const effectiveMode: LearningMode = profile
@@ -282,6 +284,99 @@ export default function TransformPage() {
                 keyTerms={result.keyTerms}
                 rawText={result.transformed.replace(/<[^>]+>/g, '')}
               />
+            )}
+
+            {/* ── Story Mode (Middle/High School) ── */}
+            {result.story && (ageGroup === 'preteen' || ageGroup === 'teen') && (
+              <div 
+                className="glass-card p-6 space-y-4 border-l-4"
+                style={{ 
+                  borderLeftColor: effectiveMode === 'adhd' ? '#7c5bf9' : effectiveMode === 'dyslexia' ? '#f59e0b' : '#00d4ff',
+                  fontFamily: effectiveMode === 'dyslexia' ? '"OpenDyslexic", "Comic Sans MS", sans-serif' : 'inherit'
+                }}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-[#7c5bf9]/10 flex items-center justify-center">
+                      <BookOpen className="w-5 h-5 text-[#7c5bf9]" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-[#f0f0ff]">Story Mode</h3>
+                      <p className="text-xs text-[#8888b0]">Learning via real-world narrative</p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => setShowStory(!showStory)}
+                    className="px-4 py-2 rounded-lg text-sm font-bold transition-all"
+                    style={{ background: showStory ? 'rgba(124,91,249,0.15)' : 'rgba(255,255,255,0.05)', color: '#a78bfa', border: '1px solid rgba(124,91,249,0.3)' }}
+                  >
+                    {showStory ? 'Hide Story' : 'Show Story 📖'}
+                  </button>
+                </div>
+                
+                {showStory && (
+                  <div 
+                    className="p-5 rounded-2xl bg-white/5 border border-white/10 prose prose-invert max-w-none"
+                    style={{ 
+                      letterSpacing: effectiveMode === 'dyslexia' ? '0.04em' : 'normal',
+                      lineHeight: effectiveMode === 'dyslexia' ? 1.8 : 1.6
+                    }}
+                  >
+                    <div 
+                      className="text-[#c0c0e0] leading-relaxed space-y-4"
+                      dangerouslySetInnerHTML={{ __html: result.story }}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ── Advanced Analytical Tools (University/Adult) ── */}
+            {ageGroup === 'adult' && (
+              <div 
+                className="glass-card p-6 space-y-6"
+                style={{ 
+                  fontFamily: effectiveMode === 'dyslexia' ? '"OpenDyslexic", "Comic Sans MS", sans-serif' : 'inherit'
+                }}
+              >
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 rounded-xl bg-[#00d4ff]/10 flex items-center justify-center">
+                    <GraduationCap className="w-5 h-5 text-[#00d4ff]" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-[#f0f0ff]">Advanced Analytical Suite</h3>
+                    <p className="text-xs text-[#8888b0]">Detailed study aids for complex topics</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div 
+                    className="p-5 rounded-2xl bg-white/5 border border-white/10 space-y-3"
+                    style={{ borderLeft: effectiveMode === 'adhd' ? '3px solid #7c5bf9' : '1px solid rgba(255,255,255,0.1)' }}
+                  >
+                    <div className="flex items-center gap-2 text-[#00d4ff] font-bold text-sm">
+                      <Brain className="w-4 h-4" /> Core Thesis Extraction
+                    </div>
+                    <p className="text-sm text-[#8888b0] leading-relaxed">
+                      "Understanding the intersection of {inputText.trim().split(' ')[0]} and its broader implications on systemic equilibrium."
+                    </p>
+                  </div>
+                  <div 
+                    className="p-5 rounded-2xl bg-white/5 border border-white/10 space-y-3"
+                    style={{ borderLeft: effectiveMode === 'adhd' ? '3px solid #f59e0b' : '1px solid rgba(255,255,255,0.1)' }}
+                  >
+                    <div className="flex items-center gap-2 text-[#7c5bf9] font-bold text-sm">
+                      <Lightbulb className="w-4 h-4" /> Smart Flashcards
+                    </div>
+                    <div className="space-y-2">
+                      <div className="text-[10px] uppercase text-[#555580] font-bold">Front: {result.keyTerms[0]?.term || 'Concept'}</div>
+                      <div className="text-xs text-[#f0f0ff] p-2 rounded-lg bg-black/20">
+                        {result.keyTerms[0]?.explanation || 'Detailed explanation...'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             )}
 
             {/* Action buttons */}
