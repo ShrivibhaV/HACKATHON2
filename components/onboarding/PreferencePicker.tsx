@@ -132,7 +132,7 @@ export function PreferencePicker({ onComplete }: PreferencePickerProps) {
     };
   };
 
-  const resultProfile = screen === 'result' ? buildProfile() : null;
+  const [resultProfile, setResultProfile] = useState<StudentProfile | null>(null);
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-12">
@@ -309,6 +309,57 @@ export function PreferencePicker({ onComplete }: PreferencePickerProps) {
             </div>
             <CognitiveGame onComplete={(stats) => {
               setGameStats(stats);
+              
+              // We must build the profile here on the client side to avoid hydration mismatches
+              // caused by crypto.randomUUID() running on the server.
+              
+              // Use a timeout to ensure gameStats state updates first if buildProfile relies on it
+              // Actually, buildProfile directly reads the current state, so we pass stats manually
+              
+              let dyslexiaWeight = 20;
+              let adhdWeight = 20;
+
+              if (diagnosis === 'dyslexia') { dyslexiaWeight += 60; }
+              else if (diagnosis === 'adhd') { adhdWeight += 60; }
+              else if (diagnosis === 'both') { dyslexiaWeight += 40; adhdWeight += 40; }
+              else { 
+                if (stats.errors > 1 || stats.hesitation > 2) dyslexiaWeight += 25;
+                if (stats.timeTaken < 15) adhdWeight += 25;
+              }
+
+              const standardWeight = Math.max(0, 100 - dyslexiaWeight - adhdWeight);
+              const weights: WeightedProfile = {
+                dyslexia: dyslexiaWeight,
+                adhd: adhdWeight,
+                standard: standardWeight,
+              };
+
+              let preferredMode: LearningMode = 'standard';
+              if (dyslexiaWeight > 50 && adhdWeight > 50) preferredMode = 'mixed';
+              else if (dyslexiaWeight > adhdWeight && dyslexiaWeight > 30) preferredMode = 'dyslexia';
+              else if (adhdWeight > dyslexiaWeight && adhdWeight > 30) preferredMode = 'adhd';
+
+              const newProfile: StudentProfile = {
+                id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15),
+                userId: '',
+                name: name.trim() || 'Learner',
+                ageGroup: ageGroup ?? 'teen',
+                gradeLevel: ageGroup === 'child' ? 3 : ageGroup === 'preteen' ? 7 : ageGroup === 'teen' ? 10 : 12,
+                diagnosisType: diagnosis === 'both' ? ['dyslexia', 'adhd'] : diagnosis ? [diagnosis] : [],
+                medicationStatus: false,
+                comfortLevel: 7,
+                weightedProfile: weights,
+                preferredMode,
+                readingSpeed: ageGroup === 'child' ? 'slow' : 'normal',
+                focusSpan: adhdWeight > 50 ? 'short' : 'medium',
+                colorPreference: diagnosis === 'dyslexia' ? 'warm' : 'dark',
+                fontScale: ageGroup === 'child' ? 1.3 : 1.0,
+                wordSpacing: diagnosis === 'dyslexia' ? 1.5 : 1.0,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+              };
+
+              setResultProfile(newProfile);
               setScreen('result');
             }} />
           </div>

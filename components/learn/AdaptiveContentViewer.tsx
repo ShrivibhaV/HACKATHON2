@@ -35,6 +35,9 @@ export function AdaptiveContentViewer({
   const [selectedComplexWord, setSelectedComplexWord] = React.useState<{ word: string, syllables: string[] } | null>(null);
 
   const getModeStyles = () => {
+    const isLightBg = backgroundColor === '#fffbf0' || backgroundColor?.toLowerCase() === '#ffffff';
+    const textColor = isLightBg ? '#1e293b' : '#f0f0ff';
+
     switch (mode) {
       case 'dyslexia':
         return {
@@ -45,10 +48,10 @@ export function AdaptiveContentViewer({
             ? '"OpenDyslexic", "Courier New", monospace'
             : 'inherit',
           backgroundColor: backgroundColor,
-          color: '#f0f0ff',
+          color: textColor,
           padding: '2rem',
           borderRadius: '1rem',
-          border: '1px solid rgba(255,255,255,0.05)',
+          border: isLightBg ? '2px solid rgba(245,158,11,0.3)' : '1px solid rgba(255,255,255,0.05)',
         };
       case 'adhd':
         return {
@@ -65,8 +68,8 @@ export function AdaptiveContentViewer({
           fontSize: `${fontSize}px`,
           lineHeight: lineHeight,
           wordSpacing: `${wordSpacing}em`,
-          color: '#f0f0ff',
-          backgroundColor: '#0f172a',
+          color: textColor,
+          backgroundColor: backgroundColor,
           padding: '2rem',
           borderRadius: '1rem',
         };

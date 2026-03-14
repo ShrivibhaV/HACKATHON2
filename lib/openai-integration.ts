@@ -1,5 +1,5 @@
 import { TextTransformationResult } from './types';
-import { applyBionicReading, chunkTextForADHD } from './text-transformers';
+import { applyBionicReading, chunkByAge } from './text-transformers';
 
 const OPENAI_API_KEY = process.env.NEXT_PUBLIC_OPENAI_API_KEY;
 const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
@@ -223,7 +223,7 @@ export async function transformTextWithAI(
       bionicReading = applyBionicReading(text);
       transformed = bionicReading;
     } else if (mode === 'adhd') {
-      chunks = chunkTextForADHD(text, 150);
+      chunks = chunkByAge(text, 'teen');
       transformed = chunks
         .map((chunk, idx) => `<div class="chunk chunk-${idx}">${chunk}</div>`)
         .join('');
@@ -251,7 +251,10 @@ export async function transformTextWithAI(
       chunks,
       keyTerms,
       quiz,
-      phoneticBreakdown
+      phoneticBreakdown,
+      actionItems: [], // Mocked as empty since OpenAI integration wasn't set up for this yet
+      readingTimeMinutes: Math.ceil(text.split(/\s+/).length / 200), // Quick avg logic for typing
+      wordCount: text.split(/\s+/).length
     };
   } catch (error) {
     console.error('[v0] Text transformation failed:', error);

@@ -1,61 +1,60 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ScatterChart, Scatter } from 'recharts';
-import { Users, TrendingUp, AlertCircle, Share2 } from 'lucide-react';
+import { Users, TrendingUp, AlertCircle, Share2, Loader2 } from 'lucide-react';
 
-const studentData = [
-  {
-    id: 1,
-    name: 'Alex Johnson',
-    mode: 'Dyslexia',
-    wordsRead: 2400,
-    comprehension: 78,
-    sessionTime: 120,
-    lastActive: '2 hours ago',
-    struggles: ['Complex vocabulary', 'Long paragraphs'],
-  },
-  {
-    id: 2,
-    name: 'Jordan Smith',
-    mode: 'ADHD',
-    wordsRead: 1800,
-    comprehension: 82,
-    sessionTime: 95,
-    lastActive: '4 hours ago',
-    struggles: ['Sustained focus'],
-  },
-  {
-    id: 3,
-    name: 'Casey Brown',
-    mode: 'Standard',
-    wordsRead: 3200,
-    comprehension: 90,
-    sessionTime: 160,
-    lastActive: '1 hour ago',
-    struggles: ['None detected'],
-  },
-];
-
-const classProgress = [
-  { week: 'Week 1', avgWords: 1200, avgTime: 40 },
-  { week: 'Week 2', avgWords: 1600, avgTime: 50 },
-  { week: 'Week 3', avgWords: 2100, avgTime: 65 },
-  { week: 'Week 4', avgWords: 2400, avgTime: 75 },
-];
-
-const strugglePoints = [
-  { x: 2400, y: 78, name: 'Photosynthesis - Complex vocabulary' },
-  { x: 1800, y: 82, name: 'Water Cycle - Length' },
-  { x: 3200, y: 90, name: 'Human Brain - Engagement' },
-];
+interface StudentData {
+  id: string; // Updated to string for UUID
+  name: string;
+  mode: string;
+  wordsRead: number;
+  comprehension: number;
+  sessionTime: number;
+  lastActive: string;
+  struggles: string[];
+}
 
 export default function TeacherDashboard() {
-  const [selectedStudent, setSelectedStudent] = useState<(typeof studentData)[0] | null>(
-    studentData[0]
-  );
+  const [studentData, setStudentData] = useState<StudentData[]>([]);
+  const [classProgress, setClassProgress] = useState<any[]>([]);
+  const [strugglePoints, setStrugglePoints] = useState<any[]>([]);
+  const [selectedStudent, setSelectedStudent] = useState<StudentData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        const response = await fetch('/api/dashboard');
+        if (!response.ok) throw new Error('Failed to fetch data');
+        const data = await response.json();
+        
+        setStudentData(data.studentData);
+        setClassProgress(data.classProgress);
+        setStrugglePoints(data.strugglePoints);
+        if (data.studentData.length > 0) {
+          setSelectedStudent(data.studentData[0]);
+        }
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-background via-background to-purple-50 dark:to-purple-950">
+        <Loader2 className="w-8 h-8 text-purple-600 animate-spin mb-4" />
+        <p className="text-slate-600 dark:text-slate-400">Loading student metrics...</p>
+      </div>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-background via-background to-purple-50 dark:to-purple-950">

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useProfile } from '@/lib/profile-context';
 import { supabase } from '@/lib/supabase';
 import { Card } from '@/components/ui/card';
@@ -14,7 +15,7 @@ import {
 } from 'lucide-react';
 
 export default function ProgressPage() {
-  const { profile } = useProfile();
+  const { profile, loading } = useProfile();
   const [progressData, setProgressData] = useState<any[]>([]);
   const [stats, setStats] = useState({
     totalWords: 0,
@@ -24,37 +25,48 @@ export default function ProgressPage() {
   });
 
   useEffect(() => {
-    if (!profile) return;
+    if (!profile || !profile.id) return;
 
     const fetchProgress = async () => {
-      // Mock data for now since we're just setting up the full-stack
-      // In a real scenario, we'd fetch from learning_progress table
-      const mockData = [
-        { day: 'Mon', words: 120, time: 15, accuracy: 85 },
-        { day: 'Tue', words: 250, time: 25, accuracy: 92 },
-        { day: 'Wed', words: 180, time: 20, accuracy: 88 },
-        { day: 'Thu', words: 310, time: 35, accuracy: 95 },
-        { day: 'Fri', words: 220, time: 22, accuracy: 90 },
-        { day: 'Sat', words: 450, time: 45, accuracy: 98 },
-        { day: 'Sun', words: 380, time: 40, accuracy: 94 },
-      ];
-      
-      setProgressData(mockData);
-      setStats({
-        totalWords: mockData.reduce((acc, curr) => acc + curr.words, 0),
-        timeSpent: mockData.reduce((acc, curr) => acc + curr.time, 0),
-        averageAccuracy: Math.round(mockData.reduce((acc, curr) => acc + curr.accuracy, 0) / mockData.length),
-        streak: 5
-      });
+      try {
+        const response = await fetch(`/api/progress?id=${profile.id}`);
+        if (!response.ok) throw new Error('Failed to fetch data');
+        const data = await response.json();
+        
+        const fetchedData = data.mockData || [];
+        setProgressData(fetchedData);
+        
+        if (fetchedData.length > 0) {
+          setStats({
+            totalWords: fetchedData.reduce((acc: any, curr: any) => acc + curr.words, 0),
+            timeSpent: fetchedData.reduce((acc: any, curr: any) => acc + curr.time, 0),
+            averageAccuracy: Math.round(fetchedData.reduce((acc: any, curr: any) => acc + curr.accuracy, 0) / fetchedData.length),
+            streak: fetchedData.length // Using number of days active as a placeholder streak
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching progress:', error);
+      }
     };
 
     fetchProgress();
   }, [profile]);
 
-  if (!profile) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p className="text-slate-400 animate-pulse">Loading your progress profile...</p>
+      </div>
+    );
+  }
+
+  if (!profile || !profile.id) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center space-y-4">
+        <p className="text-slate-400 text-lg">No profile found. Let's create one!</p>
+        <Link href="/onboarding" className="px-6 py-2 bg-purple-600 rounded-lg text-white font-bold hover:bg-purple-500 transition-colors">
+          Get Started
+        </Link>
       </div>
     );
   }

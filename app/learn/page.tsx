@@ -12,11 +12,23 @@ import { getAgeConfig, AgeGroup } from '@/lib/age-config';
 import { LearningMode } from '@/lib/types';
 import { AdaptiveContentViewer } from '@/components/learn/AdaptiveContentViewer';
 import { YoungLearnerContent } from '@/components/learn/YoungLearnerContent';
-import { ChevronLeft, BookOpen, Volume2, Zap, Settings, Play, Pause, Square } from 'lucide-react';
+import { ChevronLeft, BookOpen, Volume2, Zap, Settings, Play, Pause, Square, ScanEye } from 'lucide-react';
+
+import { FocusNudge } from '@/components/learn/FocusNudge';
+import { FocusMode } from '@/components/learn/FocusMode';
+import { PreSessionChecklist } from '@/components/learn/PreSessionChecklist';
 
 const LESSON = {
-  title: 'Photosynthesis: How Plants Make Food',
-  rawText: `Photosynthesis is the process by which plants convert light energy into chemical energy stored in glucose. This process occurs primarily in the leaves of plants, specifically in structures called chloroplasts that contain the green pigment chlorophyll. During the light-dependent reactions, chlorophyll absorbs photons from sunlight and transfers their energy to electrons. These high-energy electrons are used to generate adenosine triphosphate (ATP) and nicotinamide adenine dinucleotide phosphate (NADPH), which are energy carriers. Subsequently, during the light-independent reactions, also known as the Calvin cycle, these energy carriers are utilized to convert carbon dioxide into glucose through a series of enzymatic reactions. This process is essential for life on Earth because it converts light energy into chemical energy that plants use for growth, and it also produces the oxygen that most organisms need to breathe.`,
+  title: 'Photosynthesis and Cellular Respiration: The Cycle of Life',
+  rawText: `Photosynthesis is the fundamental physiological process by which autotrophic organisms, encompassing primarily plants, algae, and certain classifications of bacteria, convert radiant solar energy into storable chemical energy, specifically in the molecular form of glucose. This highly complex and essential biochemical sequence occurs predominantly within specialized intracellular organelles known as chloroplasts. These structures are profoundly concentrated within the mesophyll cells of plant leaves. Chloroplasts contain the vital green-pigmented macromolecule designated as chlorophyll, which possesses the unique evolutionary capability to capture and absorb specific wavelengths of light photons emanating from our sun.
+
+The overarching mechanism of photosynthesis can be systematically categorized into two distinct, yet intimately interdependent, biochemical stages: the light-dependent reactions and the light-independent reactions. During the initial light-dependent phase, which transpires across the thylakoid membranes densely packed within the chloroplasts, molecules of chlorophyll actively absorb photons. This absorption event subsequently excites electrons to a higher energy state, initiating an electron transport chain. The consequential movement of these high-energy electrons facilitates the generation of two critical energy-carrying molecular compounds: adenosine triphosphate (ATP) and nicotinamide adenine dinucleotide phosphate (NADPH). Concurrently, this initial stage necessitates the photolysis, or light-induced splitting, of water molecules, an action that serendipitously releases diatomic oxygen into the Earth's atmosphere as a crucial metabolic byproduct—the very oxygen that sustains the vast majority of terrestrial and aquatic aerobic lifeforms.
+
+Subsequently, the sequence transitions into the light-independent reactions, historically and formally recognized as the Calvin cycle. Unlike the preceding stage, these reactions do not mandate direct illumination and occur within the aqueous stroma enveloping the thylakoids. During this intricate cyclical phase, the previously synthesized ATP and NADPH molecules are actively utilized as metabolic fuel. Their combined chemical properties facilitate the enzymatic fixation of atmospheric carbon dioxide, converting this inorganic gas into complex, energy-dense organic carbohydrates, most notably the simple sugar glucose. This newly synthesized glucose ultimately serves as the primary energetic substrate, fueling the plant's continuous cellular growth, structural development, and reproductive processes.
+
+However, the biological narrative does not conclude with the mere production of botanical sustenance. The glucose manufactured via photosynthesis becomes the foundational metabolic precursor for a reciprocal, equally critical cellular mechanism known as cellular respiration. This secondary biological process is universally performed by nearly all living eukaryotic organisms, encompassing the plants that originally synthesized the glucose, as well as the myriad herbivores, carnivores, and omnivores that subsequently consume them. Cellular respiration unfolds predominantly within mitochondria, organelles frequently characterized as the biochemical "powerhouses" of the cell.
+
+Within the mitochondrial matrix and across the inner mitochondrial membrane, organisms enzymatically dismantle the intricate molecular bonds of glucose in the presence of diatomic oxygen—the exact same oxygen originally liberated during the light-dependent reactions of photosynthesis. This controlled metabolic oxidation systematically releases the substantial chemical energy stored within the glucose molecule, subsequently repackaging it into newly synthesized molecules of ATP. This newly generated ATP acts as the universal energetic currency required to power virtually all cellular activities, ranging from basic muscle contraction and neurological signaling to complex biosynthesis and active molecular transport. Concurrently, the process of cellular respiration produces carbon dioxide and water as metabolic waste products. These specific byproducts are subsequently expelled into the surrounding environment, only to be reabsorbed by autotrophs, thereby continuously and harmoniously fueling the next iteration of the photosynthetic cycle. This elegant, unbroken reciprocity ensures the perpetuity of the global biosphere.`,
 };
 
 const MODE_CONFIG = {
@@ -31,6 +43,8 @@ export default function LearnPage() {
   const [showSidebar, setShowSidebar] = useState(true);
   const [focusRulerOn, setFocusRulerOn] = useState(false);
   const [distractionFree, setDistractionFree] = useState(false);
+  const [showPreSession, setShowPreSession] = useState(false);
+  const [showFocusMode, setShowFocusMode] = useState(false);
   const [activeChunk, setActiveChunk] = useState(0);
   const tts = useTTS();
 
@@ -117,8 +131,16 @@ export default function LearnPage() {
               </div>
             </div>
 
-            {/* TTS Controls */}
+            {/* Quick Actions & TTS Controls */}
             <div className="flex items-center gap-2 flex-shrink-0">
+              <button 
+                onClick={() => setShowPreSession(true)}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all hover:opacity-90"
+                style={{ background: 'linear-gradient(135deg, #f59e0b, #e040fb)', color: 'white' }}
+              >
+                <ScanEye className="w-4 h-4" /> Focus Mode
+              </button>
+
               {!tts.isPlaying ? (
                 <button onClick={() => tts.play(transformation.transformed)}
                   className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all hover:opacity-90"
@@ -234,7 +256,7 @@ export default function LearnPage() {
 
               {/* Key terms */}
               {transformation.keyTerms.length > 0 && (
-                <div className="glass-card p-4 space-y-3 sticky top-20">
+                <div className="glass-card p-4 space-y-3">
                   <h3 className="font-bold text-sm text-[#f0f0ff] flex items-center gap-2">
                     <BookOpen className="w-4 h-4 text-[#a78bfa]" /> Key Terms
                   </h3>
@@ -276,7 +298,7 @@ export default function LearnPage() {
                 </div>
               )}
 
-              {/* Profile summary */}
+          {/* Profile summary */}
               <div className="glass-card p-4 space-y-2">
                 <p className="text-xs font-bold text-[#8888b0]">YOUR PROFILE</p>
                 <p className="text-sm font-semibold text-[#f0f0ff]">{profile.name}</p>
@@ -290,6 +312,37 @@ export default function LearnPage() {
           )}
         </div>
       </div>
+      
+      {/* ── Module C: Focus Nudge Timer ── */}
+      <FocusNudge 
+        thresholdMinutes={0.25} // Set to 15 seconds for easy testing. Normally `cfg.focusTimerMinutes`
+        onSimplify={() => {
+           // Provide a visual cue that simplification happened
+           alert("Content has been further simplified based on your learning style!");
+        }}
+        onTakeBreak={() => {
+           // Example of break trigger
+           alert("Time for a 2-minute brain break. Stretch your legs!");
+        }}
+      />
+
+      {/* ── Pre-Session Checklist ── */}
+      {showPreSession && (
+        <PreSessionChecklist 
+          onCancel={() => setShowPreSession(false)}
+          onComplete={() => {
+            setShowPreSession(false);
+            setShowFocusMode(true);
+          }}
+        />
+      )}
+
+      {/* ── Lockdown Screen Overlay ── */}
+      <FocusMode 
+        content={LESSON.rawText} 
+        isActive={showFocusMode} 
+        onClose={() => setShowFocusMode(false)} 
+      />
     </main>
   );
 }
