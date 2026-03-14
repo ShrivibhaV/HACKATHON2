@@ -68,13 +68,62 @@ export default function TransformPage() {
     }
     setLoading(true);
     setError(null);
-    // Simulate brief processing delay for UX
-    await new Promise((r) => setTimeout(r, 600));
     try {
-      const transformed = transformTextForLearner(inputText, effectiveMode, ageGroup);
-      setResult(transformed);
+      const res = await fetch('/api/transform', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: inputText, mode: effectiveMode, ageGroup })
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to transform text');
+      }
+
+      const aiData = await res.json();
+      
+      const { extractActionItems } = await import('@/lib/text-transformers');
+      const actionItems = extractActionItems(inputText);
+      
+      const wordCount = inputText.trim().split(/\s+/).length;
+      const wpm = { child: 80, preteen: 120, teen: 160, adult: 200, teacher: 220 }[ageGroup] ?? 150;
+      const readingTimeMinutes = Math.ceil(wordCount / wpm);
+
+      const phoneticBreakdown: { word: string; syllables: string[] }[] = [];
+      const words = inputText.match(/\b[A-Za-z]{6,}\b/g) || [];
+      const uniqueWords = Array.from(new Set(words.map(w => w.toLowerCase())));
+      for (const word of uniqueWords) {
+        const syllables = word.match(/[^aeiouy]*[aeiouy]+(?:[^aeiouy](?![aeiouy]))*/gi) || [word];
+        if (syllables.length > 1) {
+          phoneticBreakdown.push({ word, syllables });
+        }
+      }
+
+      setResult({
+        original: inputText,
+        transformed: aiData.transformed,
+        bionicReading: '',
+        chunks: [],
+        keyTerms: aiData.keyTerms || [],
+        actionItems,
+        story: aiData.story,
+        readingTimeMinutes,
+        wordCount,
+        quiz: aiData.quiz || [],
+        phoneticBreakdown,
+      });
+
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Transformation failed');
+      console.warn("AI Transformation failed, falling back to local NLP logic: ", err);
+      // Let the user know we're using the fallback but don't block them
+      setError("AI credits exhausted or key invalid. Falling back to local offline processor.");
+      
+      try {
+        const fallbackTransformed = transformTextForLearner(inputText, effectiveMode, ageGroup);
+        setResult(fallbackTransformed);
+      } catch (fallbackErr) {
+        setError(fallbackErr instanceof Error ? fallbackErr.message : 'Total Transformation failure');
+      }
     } finally {
       setLoading(false);
     }
